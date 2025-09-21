@@ -1,0 +1,7 @@
+version: '3'
+
+tasks:
+  live-run:
+    cmds:
+    - if [[ ! -d test/data ]]; then mkdir -p test/data; fi
+    - air

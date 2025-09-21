@@ -1,0 +1,411 @@
+package templates
+
+import (
+	"fmt"
+	"github.com/coolapso/picsort-web/internal/types"
+	"os"
+	"strconv"
+)
+
+templ Layout() {
+	<html>
+		<head>
+			<title>PicSort</title>
+			<script>
+              // On page load or when changing themes, best to add inline in `head` to avoid FOUC
+              if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.classList.add('dark')
+              } else {
+                document.documentElement.classList.remove('dark')
+              }
+            </script>
+			<script src="https://unpkg.com/htmx.org@2.0.4" integrity="sha384-HGfztofotfshcF7+8n44JQL2oJmowVChPTg48S+jvZoztPfvwD79OC/LTtG6dMp+" crossorigin="anonymous"></script>
+			<link rel="stylesheet" href="/static/css/main.css"/>
+			<link rel="apple-touch-icon" sizes="180x180" href="static/images/apple-touch-icon.png"/>
+			<link rel="icon" type="image/png" sizes="32x32" href="static/images/favicon-32x32.png"/>
+			<link rel="icon" type="image/png" sizes="16x16" href="static/images/favicon-16x16.png"/>
+			<link rel="manifest" href="static/images/site.webmanifest"/>
+			<link href="static/css/fontawesome/css/all.min.css" rel="stylesheet"/>
+			//TODO: Would be nice to get this from the settings without having to cause to much dependencies and ugly struct complexity
+			if value, ok := os.LookupEnv("PICSORT_POSTHOG_JS_ENABLED"); ok {
+				if enabled, _ := strconv.ParseBool(value); enabled {
+					<script src="/static/js/posthog.js"></script>
+				}
+			}
+			<script src="/static/js/picsort.js"></script>
+		</head>
+		<body class="h-screen flex flex-col bg-gray-100 dark:bg-gray-900">
+			@Navbar()
+			<div id="maincontainer" class="relative flex flex-1 flex-col justify-start mt-2 items-center bg-gray-100 dark:bg-gray-900 dark:border-gray-600 pb-12 min-h-0">
+				{ children... }
+				@Footer()
+			</div>
+			@DesktopVersionModal()
+			@HelpModal()
+		</body>
+	</html>
+}
+
+templ Home(u *types.User) {
+	@Layout() {
+		<div id="app" class="w-full max-w-[98%] h-[98%] flex flex-col bg-white dark:bg-gray-800 dark:border-gray-600 shadow-xl rounded-lg overflow-hidden">
+			<div id="controls" class="bg-white dark:bg-gray-800 shadow-xs border-b border-gray-200 dark:border-gray-600 p-2">
+				<div class="flex items-center gap-2">
+					<form
+						id="form"
+						hx-encoding="multipart/form-data"
+						hx-post="/upload"
+						hx-target="#upload-status"
+						hx-swap="innerHTML"
+						class="flex items-center"
+					>
+						<input type="file" name="files" multiple accept="image/*" class="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-white file:text-sm file:font-semibold file:bg-blue-500 file:text-blue-700 hover:file:bg-blue-700 dark:text-gray-300"/>
+						<button id="upload" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-full">
+							Upload
+						</button>
+					</form>
+					<button
+						id="download"
+						hx-get="/makezip"
+						hx-target="#upload-status"
+						hx-swap="innerHTML"
+						class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-full"
+					>
+						Download
+					</button>
+					<div id="spinner" class="hidden mr-4">
+						<div class="inline-block h-5 w-5 animate-spin rounded-full border-2 border-solid border-blue-500 border-r-transparent"></div>
+					</div>
+					<div id="upload-status">@UploadStatus(0, nil, "")
+</div>
+					<div id="helpers" class="flex items-center ml-auto gap-2">
+						<button id="help-button" class="flex items-center justify-center h-8 w-8 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-300 transition-colors" title="Show help (?)">
+							<span class="font-bold text-m">?</span>
+						</button>
+					</div>
+				</div>
+			</div>
+			// Main content area with left and right panes 
+			<div id="user-content" hx-swap-oob="true" class="flex-1 flex flex-col overflow-hidden min-h-0">
+				@UserContent(u)
+			</div>
+		</div>
+	}
+}
+
+templ UserContent(u *types.User) {
+	// Top section with thumbnails and preview side by side
+	<div id="grid-preview-wrapper" class="flex-1 flex overflow-hidden min-h-0">
+		// Left pane with thumbnails
+		<div class="w-2/5 bg-white dark:bg-gray-700 border-r border-gray-200 dark:border-gray-600 overflow-y-auto p-4 h-full min-h-0">
+			@ThumbnailGrid(u.Pictures.Bins["unsorted"])
+		</div>
+		// Right pane for selected picture
+		<div class="flex-1 flex flex-col bg-gray-50 dark:bg-gray-600 overflow-auto">
+			<div id="no-selection" class="flex-1 flex flex-col items-center justify-center text-gray-500 dark:text-gray-400">
+				<div id="logo" class="w-16 h-16 mb-4">
+					<image src="/static/images/logo.png"></image>
+				</div>
+				<div class="text-center max-w-md">
+					Picsort helps organizing pictures into different folders.
+					<br/>
+					Upload your unsorted pictures and sort them comfortably using only your keyboard.
+				</div>
+			</div>
+			<div id="preview-pane" class="hidden h-full relative min-h-0">
+				<div id="preview-image-wrapper" class="w-full h-full flex items-center justify-center p-4 min-h-0">
+					<img id="preview-image" src="" class="max-w-full max-h-full object-contain shadow-lg min-h-0"/>
+				</div>
+				<span id="preview-filename" class="absolute bottom-2 right-2 bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded-sm"></span>
+			</div>
+		</div>
+	</div>
+	// Bottom containers
+	<div id="dirs-container" class="flex h-48 border-t border-b border-gray-200 dark:border-gray-600 shrink-0">
+		for i := 1; i <= 5; i++ {
+			@DirBin(fmt.Sprintf("%d", i), u.Pictures.Bins[fmt.Sprintf("%d", i)])
+		}
+	</div>
+	@UserQuota(u.UsedQuotaMB.String(), u.TotalQuotaMB.String())
+}
+
+templ UploadStatus(s int, f []string, m string) {
+	<div id="upload-success">
+		if s > 0 {
+			<strong class="text-green-600 dark:text-green-400">Successfully uploaded { fmt.Sprintf("%d", s) } file(s).</strong>
+		}
+	</div>
+	<div id="upload-error">
+		if f != nil {
+			<strong class="text-red-600 dark:text-red-400">Could not save { fmt.Sprintf("%d", len(f)) } file(s)</strong>
+			<div id="failed-files" class="text-sm text-red-500 dark:text-red-400">
+				for _, file := range f {
+					{ fmt.Sprint( file + " ") }
+				}
+			</div>
+			<strong class="text-red-600 dark:text-red-400">please make sure to provide only image files!</strong>
+		}
+	</div>
+	if m != "" {
+		<div id="extra-message">
+			<strong class="text-yellow-600 dark:text-yellow-400">{ m }</strong>
+		</div>
+	}
+}
+
+templ ThumbnailGrid(p []string) {
+	<div id="thumbnail-grid" hx-swap-oob="true" class="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-2">
+		if p == nil || len(p) == 0 {
+			<div class="col-span-full flex justify-center items-center p-8">
+				<div class="rounded-lg p-8 max-w-lg w-full text-center dark:text-gray-400">
+					<h3 class="text-lg font-semibold text-gray-500 dark:text-gray-400 mb-2">No Pictures to Sort</h3>
+					<p class="text-gray-500 dark:text-gray-400 mb-6">Uploaded pictures will appear here.</p>
+					@UsageInstructions()
+				</div>
+			</div>
+		} else {
+			for i, p := range p {
+				<div class="thumbnail cursor-pointer rounded-sm overflow-hidden hover:ring-2 hover:ring-blue-300 dark:hover:ring-blue-500 transition-all w-[150px] h-[150px]" data-index={ fmt.Sprintf("%d", i) }>
+					<img src={ "/pictures/" + p } data-filename={ p } class="w-full h-full object-cover" loading="lazy"/>
+				</div>
+			}
+		}
+	</div>
+}
+
+templ UserQuota(used, total string) {
+	<div id="quota" hx-swap-oob="true" class="m-2 text-sm text-gray-600 dark:text-gray-400 flex justify-between">
+		<span><strong>Used:</strong> { used }MB out of  { total }MB</span>
+	</div>
+}
+
+templ Footer() {
+	<div id="contacts" class="absolute bottom-1 w-full flex flex-col items-center text-gray-600 dark:text-gray-400">
+		@ContactIcons()
+		<p class="text-xs">Copyright © 2025 PicSort. All Rights Reserved.</p>
+                <p class="text-xs"><a href="/privacy" class="hover:underline">Privacy Policy</a></p>
+	</div>
+}
+
+templ ContactIcons() {
+	<div class="flex justify-center text-xl">
+		<a href="https://discord.gg/WpSYb9G9UN" class="transition-colors hover:text-gray-800 dark:hover:text-gray-200"><i class="fa-brands fa-discord m-2"></i></a>
+		<a href="https://x.com/ccoolapso" class="transition-colors hover:text-gray-800 dark:hover:text-gray-200"><i class="fa-brands fa-x-twitter m-2"></i></a>
+		<a href="https://github.com/coolapso/picsort" class="transition-colors hover:text-gray-800 dark:hover:text-gray-200"><i class="fa-brands fa-github m-2"></i></a>
+		@SponsorIcons()
+	</div>
+}
+
+templ SponsorIcons() {
+	<a href="https://www.buymeacoffee.com/coolapso" class="transition-colors hover:text-gray-800 dark:hover:text-gray-200"><i class="fa-solid fa-coffee m-2"></i></a>
+	<a href="https://github.com/sponsors/coolapso" class="transition-colors hover:text-gray-800 dark:hover:text-gray-200"><i class="fa-solid fa-heart m-2"></i></a>
+}
+
+templ DirBin(n string, pics []string) {
+	<div id={ fmt.Sprintf("dir-%s", n) } hx-swap-oob="true" class="flex-1 flex flex-col border-r border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer p-2 min-w-0 focus:outline-hidden focus:bg-gray-100 dark:focus:bg-gray-800" data-directory={ n }>
+		<div id={ fmt.Sprintf("dir-header-%s", n) } class="flex justify-between items-start mb-1">
+			<span id={ fmt.Sprintf("dir-header-text-%s", n) } class="text-xs font-semibold text-gray-500 dark:text-gray-400">{ n }</span>
+			<span id={ fmt.Sprintf("dir-header-count-%s", n) } class="text-xs text-gray-400 dark:text-gray-500">
+				{ fmt.Sprintf("%d files", len(pics)) }
+			</span>
+		</div>
+		<div id={ fmt.Sprintf("dir-content-%s", n) } class="flex-1 flex flex-wrap gap-1 overflow-y-auto">
+			if pics != nil && len(pics) > 0 {
+				for _, p := range  pics {
+					<div class="mini-thumbnail w-16 h-16 bg-gray-200 dark:bg-gray-700 rounded-sm shrink-0 overflow-hidden hover:ring-2 hover:ring-blue-300 dark:hover:ring-blue-500 transition-all cursor-pointer">
+						<img src={ "/pictures/" + p } data-filename={ p } class="w-full h-full object-cover" loading="lazy"/>
+					</div>
+				}
+			}
+		</div>
+	</div>
+}
+
+templ UsageInstructions() {
+	<div class="text-left inline-block bg-gray-50 dark:bg-gray-700 p-4 rounded-md border dark:border-gray-600">
+		<h4 class="font-semibold text-gray-600 dark:text-gray-300 mb-3 text-center">Keyboard Shortcuts</h4>
+		<ul class="space-y-2 text-sm text-gray-600 dark:text-gray-400">
+			<li class="flex items-center gap-4">
+				<span class="w-28 text-right font-medium">Choose files:</span>
+				<span>
+					<kbd class="font-mono bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 px-2 py-1 rounded-md">s</kbd>
+				</span>
+			</li>
+			<li class="flex items-center gap-4">
+				<span class="w-28 text-right font-medium">Download:</span>
+				<span>
+					<kbd class="font-mono bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 px-2 py-1 rounded-md">d</kbd>
+				</span>
+			</li>
+			<li class="flex items-center gap-4">
+				<span class="w-28 text-right font-medium">Upload:</span>
+				<span>
+					<kbd class="font-mono bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 px-2 py-1 rounded-md">u</kbd>
+				</span>
+			</li>
+			<li class="flex items-center gap-4">
+				<span class="w-28 text-right font-medium">Navigate:</span>
+				<span>
+					<kbd class="font-mono bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 px-2 py-1 rounded-md">↑</kbd>
+					<kbd class="font-mono bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 px-2 py-1 rounded-md">↓</kbd>
+					<kbd class="font-mono bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 px-2 py-1 rounded-md">←</kbd>
+					<kbd class="font-mono bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 px-2 py-1 rounded-md">→</kbd>
+					or
+					<kbd class="font-mono bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 px-2 py-1 rounded-md">hjkl</kbd>
+				</span>
+			</li>
+			<li class="flex items-center gap-4">
+				<span class="w-28 text-right font-medium">Move to Bin:</span>
+				<span>
+					<kbd class="font-mono bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 px-2 py-1 rounded-md">1</kbd> to <kbd class="font-mono bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 px-2 py-1 rounded-md">5</kbd>
+				</span>
+			</li>
+			<li class="flex items-center gap-4">
+				<span class="w-28 text-right font-medium">Delete:</span>
+				<span>
+					<kbd class="font-mono bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 px-2 py-1 rounded-md">x</kbd>
+				</span>
+			</li>
+			<li class="flex items-center gap-4">
+				<span class="w-28 text-right font-medium">Focus Bin:</span>
+				<span>
+					<kbd class="font-mono bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 px-2 py-1 rounded-md">Shift</kbd> + <kbd class="font-mono bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 px-2 py-1 rounded-md">1-5</kbd>
+				</span>
+			</li>
+			<li class="flex items-center gap-4">
+				<span class="w-28 text-right font-medium">Focus unsorted:</span>
+				<span>
+					<kbd class="font-mono bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 px-2 py-1 rounded-md">t</kbd>
+				</span>
+			</li>
+			<li class="flex items-center gap-4">
+				<span class="w-28 text-right font-medium">Help:</span>
+				<span>
+					<kbd class="font-mono bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 px-2 py-1 rounded-md">?</kbd>
+				</span>
+			</li>
+			<li class="flex items-center gap-4">
+				<span class="w-28 text-right font-medium">Toggle Theme:</span>
+				<span>
+					<kbd class="font-mono bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 px-2 py-1 rounded-md">`</kbd>
+				</span>
+			</li>
+			<li>
+				Hold the <kbd class="font-mono bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 px-2 py-1 rounded-md">Shift</kbd> key and use navigation keys to select multiple pictures.
+			</li>
+		</ul>
+	</div>
+}
+
+templ HelpModal() {
+	<div id="help-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center transition-opacity duration-300 ease-in-out">
+		<div id="help-modal-backdrop" class="absolute inset-0 bg-black opacity-50"></div>
+		<div class="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl p-8 m-4 max-w-2xl w-full">
+			@closeButton("close-help-modal")
+			@UsageInstructions()
+		</div>
+	</div>
+}
+
+templ closeButton(id string) {
+	<button id={ id } class="absolute top-3 right-3 h-4 w-4 flex items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+		<span class="text-sm font-light"><i class="fa-solid fa-x"></i></span>
+	</button>
+}
+
+templ DesktopVersionModal() {
+	<div id="desktop-version-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center transition-opacity duration-300 ease-in-out">
+		<div id="desktop-version-modal-backdrop" class="absolute inset-0 bg-black opacity-50"></div>
+		<div class="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl p-8 m-4 max-w-md w-full text-center">
+			@closeButton("close-desktop-version-modal")
+			<div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 dark:bg-blue-900/30 mb-4">
+				<i class="fa-solid fa-desktop text-blue-600 dark:text-blue-400 text-xl"></i>
+			</div>
+			<h3 class="text-2xl font-bold text-gray-800 dark:text-gray-200">Desktop Version Coming Soon!</h3>
+			<p class="text-md text-gray-500 dark:text-gray-400 mt-2 mb-6">
+				The PicSort desktop app is currently under development, if you wish to be notified when the first version is released, please subscribe below.
+				<br/>
+			</p>
+			<form id="desktop-version-form" hx-post="/subscribe" hx-target="#desktop-version-form" hx-swap="innerHTML" class="flex flex-col gap-2">
+				<input type="email" name="email" required class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 focus:ring-blue-500 focus:border-blue-500" placeholder="your.email@example.com"/>
+				<button type="submit" class="w-full px-6 py-2 rounded-md text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700">
+					Notify Me
+				</button>
+				<p class="text-sm text-gray-500 dark:text-gray-400 mt-2 mb-6">
+					You won't get any spam from me and your email won't be used for any other purpose!
+				</p>
+			</form>
+			<div id="contacts" class="text-gray-600 mt-8 dark:text-gray-400">
+				@ContactIcons()
+			</div>
+		</div>
+	</div>
+}
+
+templ SubscriptionResponse(success bool) {
+	if success {
+		<div id="desktop-version-response" class="text-m min-h-[1.25rem] text-green-600 dark:text-green-400">
+			<strong>Thank you for your interest!</strong>
+			<br/>
+			A Confirmation email has been sent to your email address.
+		</div>
+	} else {
+		<div id="desktop-version-response" class="text-m min-h-[1.25rem] text-red-600 dark:text-red-400">
+			<strong>Something went wrong.</strong>
+			<br/>
+			Please try again later.
+		</div>
+	}
+}
+
+templ Navbar() {
+	<nav class="bg-gray-100 dark:bg-gray-900 border-gray-200 dark:border-gray-700">
+		<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+			<div class="flex items-center justify-between h-16">
+				<div class="flex items-center">
+					<div class="flex-shrink-0">
+						<a href="/" class="flex items-center">
+							<img class="h-8 w-8" src="/static/images/logo.png" alt="PicSort Logo"/>
+							<p class="text-gray-700 dark:text-gray-300 px-3 rounded-md text-sm font-bold">PicSort</p>
+						</a>
+					</div>
+					<div class="ml-5 flex items-baseline space-x-4">
+						<button
+							id="desktop-version-button"
+							type="button"
+							class="text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 px-3 py-2 rounded-md text-sm font-medium"
+						>
+							Desktop Version
+						</button>
+					</div>
+					<div class="ml-5 flex items-baseline space-x-4">
+						<a
+							href="/roadmap"
+							class="text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 px-3 py-2 rounded-md text-sm font-medium"
+							hx-get="/roadmap"
+							hx-target="#app"
+							hx-swap="outerHTML"
+							hx-push-url="true"
+						>Roadmap</a>
+					</div>
+					<div class="ml-5 flex items-baseline space-x-4">
+						<a
+							href="/faq"
+							class="text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 px-3 py-2 rounded-md text-sm font-medium"
+							hx-get="/faq"
+							hx-target="#app"
+							hx-swap="outerHTML"
+							hx-push-url="true"
+						>FAQ</a>
+					</div>
+				</div>
+				<div class="flex items-center">
+					<button id="theme-toggle" class="flex items-center justify-center h-8 w-8 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600 dark:bg-gray-900 dark:hover:bg-gray-700 dark:text-gray-300 transition-colors" title="Toggle theme">
+						<span id="theme-toggle-sun" class="hidden"><i class="fa-solid fa-sun"></i></span>
+						<span id="theme-toggle-moon" class="hidden"><i class="fa-solid fa-moon"></i></span>
+					</button>
+				</div>
+			</div>
+		</div>
+	</nav>
+}
