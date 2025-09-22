@@ -2,8 +2,6 @@ package ui
 
 import (
 	"fmt"
-	"image"
-	"sync"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
@@ -12,45 +10,15 @@ import (
 
 	// "fyne.io/fyne/v2/storage"
 	"fyne.io/fyne/v2/widget"
-	// "github.com/coolapso/picsort/internal/data"
+	"github.com/coolapso/picsort/internal/data"
 )
-
-type thumbnailCache struct {
-	sync.RWMutex
-	cache map[string]image.Image
-}
-
-func NewThumbnailCache() *thumbnailCache {
-	return &thumbnailCache{
-		cache: make(map[string]image.Image),
-	}
-}
-
-func (c *thumbnailCache) Get(path string) (image.Image, bool) {
-	c.RLock()
-	defer c.RUnlock()
-	img, found := c.cache[path]
-	return img, found
-}
-
-func (c *thumbnailCache) Set(path string, img image.Image) {
-	c.Lock()
-	defer c.Unlock()
-	c.cache = make(map[string]image.Image)
-}
-
-func (c *thumbnailCache) Clear() {
-	c.Lock()
-	defer c.Unlock()
-	c.cache = make(map[string]image.Image)
-}
 
 type PicsortUI struct {
 	app           fyne.App
 	win           fyne.Window
 	bins          *fyne.Container
 	thumbnails    *fyne.Container
-	thumbCache    *thumbnailCache
+	thumbCache    *data.ThumbnailCache
 	progress      *widget.ProgressBar
 	progressValue binding.Float
 }
@@ -59,7 +27,7 @@ func New(a fyne.App, w fyne.Window) *PicsortUI {
 	return &PicsortUI{
 		app:           a,
 		win:           w,
-		thumbCache:    NewThumbnailCache(),
+		thumbCache:    data.NewThumbnailCache(),
 		progressValue: binding.NewFloat(),
 	}
 }
@@ -72,7 +40,6 @@ func (p *PicsortUI) sortingBins() {
 }
 
 func (p *PicsortUI) Build() {
-	// p.thumbnails = container.New(layout.NewAdaptiveGridLayout(3))
 	p.sortingBins()
 	p.progress = widget.NewProgressBarWithData(p.progressValue)
 	p.progress.Hide()
