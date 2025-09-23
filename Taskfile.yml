@@ -1,6 +1,9 @@
 version: '3'
 
 tasks:
+  run:
+    cmds:
+      - go run -tags wayland ./cmd
   live-run:
     cmds:
     - if [[ ! -d test/data ]]; then mkdir -p test/data; fi
