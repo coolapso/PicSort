@@ -21,6 +21,9 @@ type PicsortUI struct {
 	thumbCache    *data.ThumbnailCache
 	progress      *widget.ProgressBar
 	progressValue binding.Float
+	progressTitle *widget.Label
+	progressFile  *widget.Label
+	progressBox   *fyne.Container
 }
 
 func New(a fyne.App, w fyne.Window) *PicsortUI {
@@ -29,6 +32,8 @@ func New(a fyne.App, w fyne.Window) *PicsortUI {
 		win:           w,
 		thumbCache:    data.NewThumbnailCache(),
 		progressValue: binding.NewFloat(),
+		progressTitle: widget.NewLabel(""),
+		progressFile:  widget.NewLabel(""),
 	}
 }
 
@@ -41,7 +46,14 @@ func (p *PicsortUI) sortingBins() {
 
 func (p *PicsortUI) Build() {
 	p.sortingBins()
+	// p.progressTitle.Alignment = fyne.TextAlignCenter
+	// p.progressFile.Alignment = fyne.TextAlignCenter
 	p.progress = widget.NewProgressBarWithData(p.progressValue)
+	p.progressBox = container.NewVBox(
+		p.progressTitle,
+		p.progress,
+		p.progressFile,
+	)
 	p.progress.Hide()
 
 	topBar := p.topBar()
@@ -49,8 +61,8 @@ func (p *PicsortUI) Build() {
 	p.thumbnails = container.New(layout.NewGridLayout(3))
 	thumbnailPane := container.NewScroll(p.thumbnails)
 	centerContent := container.NewStack(
+		container.NewBorder(p.progressBox, nil, nil, nil),
 		thumbnailPane,
-		container.NewBorder(p.progress, nil, nil, nil),
 	)
 
 	preview := widget.NewCard("Preview", "Selected image", nil)

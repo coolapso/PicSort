@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/url"
 	"os"
+	"path/filepath"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/canvas"
@@ -53,6 +54,8 @@ func (p *PicsortUI) topBar() *fyne.Container {
 
 func (p *PicsortUI) loadThumbnails(path string) {
 	fyne.Do(func() {
+		p.progressTitle.SetText("Preparing thumbnails, this may take a while...")
+		p.progressBox.Show()
 		p.progress.Show()
 		p.progressValue.Set(0)
 		p.thumbnails.RemoveAll()
@@ -73,6 +76,9 @@ func (p *PicsortUI) loadThumbnails(path string) {
 	var thumbs []fyne.CanvasObject
 	total := float64(len(d.Images))
 	for i, imgPath := range d.Images {
+		fyne.Do(func() {
+			p.progressFile.SetText(filepath.Base(imgPath))
+		})
 		file, err := os.Open(imgPath)
 		if err != nil {
 			log.Printf("Could not open file %s: %v", imgPath, err)
@@ -100,7 +106,7 @@ func (p *PicsortUI) loadThumbnails(path string) {
 		for _, t := range thumbs {
 			p.thumbnails.Add(t)
 		}
-		p.progress.Hide()
+		p.progressBox.Hide()
 	})
 }
 

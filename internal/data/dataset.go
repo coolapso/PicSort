@@ -1,11 +1,11 @@
 package data
 
 import (
+	"image"
 	"io/fs"
 	"path/filepath"
 	"strings"
 	"sync"
-	"image"
 )
 
 var imageExtensions = map[string]bool{
@@ -65,7 +65,7 @@ func (c *ThumbnailCache) Get(path string) (image.Image, bool) {
 func (c *ThumbnailCache) Set(path string, img image.Image) {
 	c.Lock()
 	defer c.Unlock()
-	c.cache = make(map[string]image.Image)
+	c.cache[path] = img
 }
 
 func (c *ThumbnailCache) Clear() {
