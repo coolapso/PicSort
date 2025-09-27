@@ -3,6 +3,7 @@ package ui
 import (
 	"fmt"
 	"image"
+	"sync"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/canvas"
@@ -28,6 +29,9 @@ type PicsortUI struct {
 	progressTitle  *widget.Label
 	progressFile   *widget.Label
 	progressDialog dialog.Dialog
+	wg             *sync.WaitGroup
+	jobs           chan string
+	thumbMutex     *sync.Mutex
 }
 
 func New(a fyne.App, w fyne.Window) *PicsortUI {
@@ -38,6 +42,7 @@ func New(a fyne.App, w fyne.Window) *PicsortUI {
 		progressValue: binding.NewFloat(),
 		progressTitle: widget.NewLabel(""),
 		progressFile:  widget.NewLabel(""),
+		thumbMutex:    &sync.Mutex{},
 	}
 }
 
