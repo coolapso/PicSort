@@ -2,6 +2,7 @@ package ui
 
 import (
 	"fmt"
+	"image"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/canvas"
@@ -20,6 +21,7 @@ type PicsortUI struct {
 	bins           *fyne.Container
 	thumbnails     *widget.GridWrap
 	db             *database.DB
+	thumbCache     map[string]image.Image
 	imagePaths     []string
 	progress       *widget.ProgressBar
 	progressValue  binding.Float
@@ -32,6 +34,7 @@ func New(a fyne.App, w fyne.Window) *PicsortUI {
 	return &PicsortUI{
 		app:           a,
 		win:           w,
+		thumbCache:    make(map[string]image.Image),
 		progressValue: binding.NewFloat(),
 		progressTitle: widget.NewLabel(""),
 		progressFile:  widget.NewLabel(""),
@@ -64,7 +67,10 @@ func (p *PicsortUI) NewThumbnailGrid() *widget.GridWrap {
 			}
 			path := p.imagePaths[i]
 			img := o.(*canvas.Image)
-			thumb, _ := p.db.GetThumbnail(path)
+			thumb, found := p.thumbCache[path]
+			if !found {
+				thumb, _ = p.db.GetThumbnail(path)
+			}
 			img.Image = thumb
 			img.Refresh()
 		},
