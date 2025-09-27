@@ -120,5 +120,19 @@ func (db *DB) SetThumbnailsBatch(thumbnails map[string]image.Image) error {
 	}
 	defer stmt.Close()
 
+	for path, img := range thumbnails {
+		var buf bytes.Buffer
+		if err := jpeg.Encode(&buf, img, nil); err != nil {
+			log.Printf("Error encoding thumbnail for %s: %v", path, err)
+			continue
+		}
+
+		_, err := stmt.Exec(path, buf.Bytes())
+		if err != nil {
+			log.Printf("Error executing batch statement for %s: %v", path, err)
+			continue
+		}
+	}
+
 	return tx.Commit()
 }
