@@ -11,7 +11,7 @@ import (
 
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/widget"
-	"github.com/coolapso/picsort/internal/data"
+	"github.com/coolapso/picsort/internal/database"
 )
 
 type PicsortUI struct {
@@ -19,7 +19,7 @@ type PicsortUI struct {
 	win            fyne.Window
 	bins           *fyne.Container
 	thumbnails     *widget.GridWrap
-	thumbCache     *data.ThumbnailCache
+	db             *database.DB
 	imagePaths     []string
 	progress       *widget.ProgressBar
 	progressValue  binding.Float
@@ -32,7 +32,6 @@ func New(a fyne.App, w fyne.Window) *PicsortUI {
 	return &PicsortUI{
 		app:           a,
 		win:           w,
-		thumbCache:    data.NewThumbnailCache(),
 		progressValue: binding.NewFloat(),
 		progressTitle: widget.NewLabel(""),
 		progressFile:  widget.NewLabel(""),
@@ -65,7 +64,7 @@ func (p *PicsortUI) NewThumbnailGrid() *widget.GridWrap {
 			}
 			path := p.imagePaths[i]
 			img := o.(*canvas.Image)
-			thumb, _ := p.thumbCache.Get(path)
+			thumb, _ := p.db.GetThumbnail(path)
 			img.Image = thumb
 			img.Refresh()
 		},

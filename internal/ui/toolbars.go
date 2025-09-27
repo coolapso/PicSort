@@ -16,6 +16,7 @@ import (
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 	"github.com/coolapso/picsort/internal/data"
+	"github.com/coolapso/picsort/internal/database"
 	"github.com/nfnt/resize"
 )
 
@@ -60,7 +61,19 @@ func (p *PicsortUI) loadThumbnails(path string) {
 		p.imagePaths = []string{}
 	})
 
-	p.thumbCache.Clear()
+	if p.db != nil {
+		p.db.Close()
+	}
+	db, err := database.New(path)
+	if err != nil {
+		log.Println("error opening database:", err)
+		fyne.Do(func() {
+			dialog.ShowError(err, p.win)
+			p.progressDialog.Hide()
+		})
+		return
+	}
+	p.db = db
 
 	d, err := data.NewDataset(path)
 	if err != nil {
@@ -78,6 +91,12 @@ func (p *PicsortUI) loadThumbnails(path string) {
 		fyne.Do(func() {
 			p.progressFile.SetText(filepath.Base(imgPath))
 		})
+
+		if _, found := p.db.GetThumbnail(imgPath); found {
+			p.progressValue.Set(float64(i+1) / total)
+			continue
+		}
+
 		file, err := os.Open(imgPath)
 		if err != nil {
 			log.Printf("could not open file %s: %v", imgPath, err)
@@ -92,7 +111,7 @@ func (p *PicsortUI) loadThumbnails(path string) {
 		}
 
 		thumb := resize.Thumbnail(200, 200, img, resize.Lanczos3)
-		p.thumbCache.Set(imgPath, thumb)
+		p.db.SetThumbnail(imgPath, thumb)
 		p.progressValue.Set(float64(i+1) / total)
 	}
 
