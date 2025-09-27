@@ -8,6 +8,9 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"runtime"
+	"sync"
+	"sync/atomic"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
@@ -59,6 +62,7 @@ func (p *PicsortUI) loadThumbnails(path string) {
 		p.progress.Show()
 		p.progressValue.Set(0)
 		p.imagePaths = []string{}
+		p.thumbCache = make(map[string]image.Image) // Reset in-memory cache
 	})
 
 	if p.db != nil {
@@ -86,33 +90,93 @@ func (p *PicsortUI) loadThumbnails(path string) {
 	}
 
 	imagePaths := d.Images
-	total := float64(len(d.Images))
-	for i, imgPath := range d.Images {
+	total := float64(len(imagePaths))
+	var processedCount int64
+	var pathsToProcess []string
+	var cachedCount int64
+	for _, imgPath := range imagePaths {
+		thumb, found := p.db.GetThumbnail(imgPath)
+		if found {
+			p.thumbCache[imgPath] = thumb
+			cachedCount++
+		} else {
+			pathsToProcess = append(pathsToProcess, imgPath)
+		}
+
+	}
+
+	atomic.StoreInt64(&processedCount, cachedCount)
+	fyne.Do(func() {
+		p.progressValue.Set(float64(cachedCount) / total)
+	})
+
+	// If all images are cached, we can finish early
+	if len(pathsToProcess) == 0 {
 		fyne.Do(func() {
-			p.progressFile.SetText(filepath.Base(imgPath))
+			p.imagePaths = imagePaths
+			p.thumbnails.Refresh()
+			p.progressDialog.Hide()
 		})
+		return
+	}
 
-		if _, found := p.db.GetThumbnail(imgPath); found {
-			p.progressValue.Set(float64(i+1) / total)
-			continue
+	jobs := make(chan string, len(pathsToProcess))
+	for _, path := range pathsToProcess {
+		jobs <- path
+	}
+	close(jobs)
+
+	newThumbnailsForDB := make(map[string]image.Image)
+	var thumbMutex sync.Mutex
+	var wg sync.WaitGroup
+	numWorkers := runtime.NumCPU()
+	wg.Add(numWorkers)
+
+	for i := 0; i < numWorkers; i++ {
+		go func() {
+			defer wg.Done()
+			for imgPath := range jobs {
+				fyne.Do(func() {
+					p.progressFile.SetText(filepath.Base(imgPath))
+				})
+
+				file, err := os.Open(imgPath)
+				if err != nil {
+					log.Printf("could not open file %s: %v", imgPath, err)
+					continue
+				}
+
+				img, _, err := image.Decode(file)
+				file.Close()
+				if err != nil {
+					log.Printf("could not decode image %s: %v", imgPath, err)
+					continue
+				}
+
+				thumb := resize.Thumbnail(200, 200, img, resize.Lanczos3)
+				thumbMutex.Lock()
+				p.thumbCache[imgPath] = thumb
+				newThumbnailsForDB[imgPath] = thumb
+				thumbMutex.Unlock()
+
+				atomic.AddInt64(&processedCount, 1)
+				progress := float64(atomic.LoadInt64(&processedCount)) / total
+				fyne.Do(func() {
+					p.progressValue.Set(progress)
+				})
+			}
+		}()
+	}
+
+	wg.Wait()
+
+	if len(newThumbnailsForDB) > 0 {
+		log.Printf("Writing %d new thumbnails to the database...", len(newThumbnailsForDB))
+		if err := p.db.SetThumbnailsBatch(newThumbnailsForDB); err != nil {
+			log.Printf("Error during batch thumbnail write: %v", err)
+		} else {
+			log.Println("Batch write complete.")
 		}
-
-		file, err := os.Open(imgPath)
-		if err != nil {
-			log.Printf("could not open file %s: %v", imgPath, err)
-			continue
-		}
-
-		img, _, err := image.Decode(file)
-		file.Close()
-		if err != nil {
-			log.Printf("could not decode image %s: %v", imgPath, err)
-			continue
-		}
-
-		thumb := resize.Thumbnail(200, 200, img, resize.Lanczos3)
-		p.db.SetThumbnail(imgPath, thumb)
-		p.progressValue.Set(float64(i+1) / total)
 	}
 
 	fyne.Do(func() {
@@ -120,7 +184,6 @@ func (p *PicsortUI) loadThumbnails(path string) {
 		p.thumbnails.Refresh()
 		p.progressDialog.Hide()
 	})
-
 }
 
 func (p *PicsortUI) bottomBar() fyne.Widget {

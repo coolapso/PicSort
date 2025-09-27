@@ -22,7 +22,7 @@ type DB struct {
 
 func New(datasetPath string) (*DB, error) {
 	dbPath := filepath.Join(datasetPath, dbFileName)
-	conn, err := sql.Open("sqlite3", dbPath)
+	conn, err := sql.Open("sqlite3", dbPath+"?_journal=WAL")
 	if err != nil {
 		return nil, err
 	}
@@ -105,4 +105,20 @@ func (db *DB) SetThumbnail(path string, img image.Image) {
 	if err != nil {
 		log.Printf("error setting thumbnail in DB for %s: %v", path, err)
 	}
+}
+
+func (db *DB) SetThumbnailsBatch(thumbnails map[string]image.Image) error {
+	tx, err := db.conn.Begin()
+	if err != nil {
+		return err
+	}
+
+	stmt, err := tx.Prepare("INSERT OR REPLACE INTO thumbnails (path, data) VALUES (?, ?)")
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	defer stmt.Close()
+
+	return tx.Commit()
 }
