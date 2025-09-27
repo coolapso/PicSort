@@ -46,20 +46,8 @@ func (p *PicsortUI) sortingBins() {
 	}
 }
 
-func (p *PicsortUI) Build() {
-	p.sortingBins()
-	p.progress = widget.NewProgressBarWithData(p.progressValue)
-	p.progressBox = container.NewVBox(
-		p.progressTitle,
-		p.progress,
-		p.progressFile,
-	)
-	p.progress.Hide()
-
-	topBar := p.topBar()
-	bottomBar := p.bottomBar()
-	// p.thumbnails = container.New(layout.NewGridLayout(3))
-	p.thumbnails = widget.NewGridWrap(
+func (p *PicsortUI) NewThumbnailGrid() *widget.GridWrap {
+	return widget.NewGridWrap(
 		func() int {
 			return len(p.imagePaths)
 		},
@@ -82,12 +70,22 @@ func (p *PicsortUI) Build() {
 			img.Refresh()
 		},
 	)
+}
 
-	// thumbnailPane := container.NewScroll(p.thumbnails)
-	centerContent := container.NewStack(
-		container.NewBorder(p.progressBox, nil, nil, nil),
-		p.thumbnails,
+func (p *PicsortUI) Build() {
+	p.sortingBins()
+	p.progress = widget.NewProgressBarWithData(p.progressValue)
+	p.progressBox = container.NewVBox(
+		p.progressTitle,
+		p.progress,
+		p.progressFile,
 	)
+	p.progress.Hide()
+
+	topBar := p.topBar()
+	bottomBar := p.bottomBar()
+	p.thumbnails = p.NewThumbnailGrid()
+	centerContent := container.NewBorder(p.progressBox, nil, nil, nil, p.thumbnails)
 
 	preview := widget.NewCard("Preview", "Selected image", nil)
 	topSplit := container.NewHSplit(centerContent, preview)
