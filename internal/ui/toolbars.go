@@ -10,7 +10,6 @@ import (
 	"path/filepath"
 
 	"fyne.io/fyne/v2"
-	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/layout"
@@ -58,22 +57,23 @@ func (p *PicsortUI) loadThumbnails(path string) {
 		p.progressBox.Show()
 		p.progress.Show()
 		p.progressValue.Set(0)
-		p.thumbnails.RemoveAll()
+		p.imagePaths = []string{}
+		p.thumbnails.Refresh()
 	})
 
 	p.thumbCache.Clear()
 
 	d, err := data.NewDataset(path)
 	if err != nil {
-		log.Println("Error loading dataset:", err)
+		log.Println("error loading dataset:", err)
 		fyne.Do(func() {
 			dialog.ShowError(err, p.win)
-			p.progress.Hide()
+			p.progressBox.Hide()
 		})
 		return
 	}
 
-	var thumbs []fyne.CanvasObject
+	p.imagePaths = d.Images
 	total := float64(len(d.Images))
 	for i, imgPath := range d.Images {
 		fyne.Do(func() {
@@ -81,33 +81,27 @@ func (p *PicsortUI) loadThumbnails(path string) {
 		})
 		file, err := os.Open(imgPath)
 		if err != nil {
-			log.Printf("Could not open file %s: %v", imgPath, err)
+			log.Printf("could not open file %s: %v", imgPath, err)
 			continue
 		}
 
 		img, _, err := image.Decode(file)
 		file.Close()
 		if err != nil {
-			log.Printf("Could not decode image %s: %v", imgPath, err)
+			log.Printf("could not decode image %s: %v", imgPath, err)
 			continue
 		}
 
 		thumb := resize.Thumbnail(100, 100, img, resize.Lanczos3)
 		p.thumbCache.Set(imgPath, thumb)
 		p.progressValue.Set(float64(i+1) / total)
-
-		canvasImg := canvas.NewImageFromImage(thumb)
-		canvasImg.FillMode = canvas.ImageFillContain
-		canvasImg.SetMinSize(fyne.NewSize(100, 100))
-		thumbs = append(thumbs, canvasImg)
 	}
 
 	fyne.Do(func() {
-		for _, t := range thumbs {
-			p.thumbnails.Add(t)
-		}
+		p.thumbnails.Refresh()
 		p.progressBox.Hide()
 	})
+
 }
 
 func (p *PicsortUI) bottomBar() fyne.Widget {
