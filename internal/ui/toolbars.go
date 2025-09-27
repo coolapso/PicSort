@@ -53,8 +53,8 @@ func (p *PicsortUI) topBar() *fyne.Container {
 
 func (p *PicsortUI) loadThumbnails(path string) {
 	fyne.Do(func() {
-		p.progressTitle.SetText("Preparing thumbnails, this may take a while...")
-		p.progressBox.Show()
+		p.progressTitle.SetText("Hang on, this may take a while...")
+		p.progressDialog.Show()
 		p.progress.Show()
 		p.progressValue.Set(0)
 		p.imagePaths = []string{}
@@ -67,7 +67,7 @@ func (p *PicsortUI) loadThumbnails(path string) {
 		log.Println("error loading dataset:", err)
 		fyne.Do(func() {
 			dialog.ShowError(err, p.win)
-			p.progressBox.Hide()
+			p.progressDialog.Hide()
 		})
 		return
 	}
@@ -99,7 +99,7 @@ func (p *PicsortUI) loadThumbnails(path string) {
 	fyne.Do(func() {
 		p.imagePaths = imagePaths
 		p.thumbnails.Refresh()
-		p.progressBox.Hide()
+		p.progressDialog.Hide()
 	})
 
 }

@@ -9,23 +9,23 @@ import (
 	"fyne.io/fyne/v2/data/binding"
 	"fyne.io/fyne/v2/layout"
 
-	// "fyne.io/fyne/v2/storage"
+	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/widget"
 	"github.com/coolapso/picsort/internal/data"
 )
 
 type PicsortUI struct {
-	app           fyne.App
-	win           fyne.Window
-	bins          *fyne.Container
-	thumbnails    *widget.GridWrap
-	thumbCache    *data.ThumbnailCache
-	imagePaths    []string
-	progress      *widget.ProgressBar
-	progressValue binding.Float
-	progressTitle *widget.Label
-	progressFile  *widget.Label
-	progressBox   *fyne.Container
+	app            fyne.App
+	win            fyne.Window
+	bins           *fyne.Container
+	thumbnails     *widget.GridWrap
+	thumbCache     *data.ThumbnailCache
+	imagePaths     []string
+	progress       *widget.ProgressBar
+	progressValue  binding.Float
+	progressTitle  *widget.Label
+	progressFile   *widget.Label
+	progressDialog dialog.Dialog
 }
 
 func New(a fyne.App, w fyne.Window) *PicsortUI {
@@ -75,17 +75,22 @@ func (p *PicsortUI) NewThumbnailGrid() *widget.GridWrap {
 func (p *PicsortUI) Build() {
 	p.sortingBins()
 	p.progress = widget.NewProgressBarWithData(p.progressValue)
-	p.progressBox = container.NewVBox(
+	progressContent := container.NewVBox(
 		p.progressTitle,
 		p.progress,
 		p.progressFile,
 	)
-	p.progress.Hide()
+	p.progressDialog = dialog.NewCustomWithoutButtons(
+		"Preparing dataset...",
+		progressContent,
+		p.win,
+	)
+	p.progressDialog.Resize(fyne.NewSize(500, 150))
 
 	topBar := p.topBar()
 	bottomBar := p.bottomBar()
 	p.thumbnails = p.NewThumbnailGrid()
-	centerContent := container.NewBorder(p.progressBox, nil, nil, nil, p.thumbnails)
+	centerContent := container.NewBorder(nil, nil, nil, nil, p.thumbnails)
 
 	preview := widget.NewCard("Preview", "Selected image", nil)
 	topSplit := container.NewHSplit(centerContent, preview)
