@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"fyne.io/fyne/v2"
+	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/data/binding"
 	"fyne.io/fyne/v2/layout"
@@ -17,8 +18,9 @@ type PicsortUI struct {
 	app           fyne.App
 	win           fyne.Window
 	bins          *fyne.Container
-	thumbnails    *fyne.Container
+	thumbnails    *widget.GridWrap
 	thumbCache    *data.ThumbnailCache
+	imagePaths    []string
 	progress      *widget.ProgressBar
 	progressValue binding.Float
 	progressTitle *widget.Label
@@ -46,8 +48,6 @@ func (p *PicsortUI) sortingBins() {
 
 func (p *PicsortUI) Build() {
 	p.sortingBins()
-	// p.progressTitle.Alignment = fyne.TextAlignCenter
-	// p.progressFile.Alignment = fyne.TextAlignCenter
 	p.progress = widget.NewProgressBarWithData(p.progressValue)
 	p.progressBox = container.NewVBox(
 		p.progressTitle,
@@ -58,11 +58,35 @@ func (p *PicsortUI) Build() {
 
 	topBar := p.topBar()
 	bottomBar := p.bottomBar()
-	p.thumbnails = container.New(layout.NewGridLayout(3))
-	thumbnailPane := container.NewScroll(p.thumbnails)
+	// p.thumbnails = container.New(layout.NewGridLayout(3))
+	p.thumbnails = widget.NewGridWrap(
+		func() int {
+			return len(p.imagePaths)
+		},
+
+		func() fyne.CanvasObject {
+			img := canvas.NewImageFromImage(nil)
+			img.FillMode = canvas.ImageFillContain
+			img.SetMinSize(fyne.NewSize(200, 200))
+			return img
+		},
+
+		func(i widget.GridWrapItemID, o fyne.CanvasObject) {
+			if i >= len(p.imagePaths) {
+				return
+			}
+			path := p.imagePaths[i]
+			img := o.(*canvas.Image)
+			thumb, _ := p.thumbCache.Get(path)
+			img.Image = thumb
+			img.Refresh()
+		},
+	)
+
+	// thumbnailPane := container.NewScroll(p.thumbnails)
 	centerContent := container.NewStack(
 		container.NewBorder(p.progressBox, nil, nil, nil),
-		thumbnailPane,
+		p.thumbnails,
 	)
 
 	preview := widget.NewCard("Preview", "Selected image", nil)
