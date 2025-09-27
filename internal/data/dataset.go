@@ -1,11 +1,9 @@
 package data
 
 import (
-	"image"
 	"io/fs"
 	"path/filepath"
 	"strings"
-	"sync"
 )
 
 var imageExtensions = map[string]bool{
@@ -42,34 +40,4 @@ func NewDataset(path string) (*Dataset, error) {
 	}
 
 	return d, nil
-}
-
-type ThumbnailCache struct {
-	sync.RWMutex
-	cache map[string]image.Image
-}
-
-func NewThumbnailCache() *ThumbnailCache {
-	return &ThumbnailCache{
-		cache: make(map[string]image.Image),
-	}
-}
-
-func (c *ThumbnailCache) Get(path string) (image.Image, bool) {
-	c.RLock()
-	defer c.RUnlock()
-	img, found := c.cache[path]
-	return img, found
-}
-
-func (c *ThumbnailCache) Set(path string, img image.Image) {
-	c.Lock()
-	defer c.Unlock()
-	c.cache[path] = img
-}
-
-func (c *ThumbnailCache) Clear() {
-	c.Lock()
-	defer c.Unlock()
-	c.cache = make(map[string]image.Image)
 }
