@@ -58,7 +58,6 @@ func (p *PicsortUI) loadThumbnails(path string) {
 		p.progress.Show()
 		p.progressValue.Set(0)
 		p.imagePaths = []string{}
-		p.thumbnails.Refresh()
 	})
 
 	p.thumbCache.Clear()
@@ -73,7 +72,7 @@ func (p *PicsortUI) loadThumbnails(path string) {
 		return
 	}
 
-	p.imagePaths = d.Images
+	imagePaths := d.Images
 	total := float64(len(d.Images))
 	for i, imgPath := range d.Images {
 		fyne.Do(func() {
@@ -92,12 +91,13 @@ func (p *PicsortUI) loadThumbnails(path string) {
 			continue
 		}
 
-		thumb := resize.Thumbnail(100, 100, img, resize.Lanczos3)
+		thumb := resize.Thumbnail(200, 200, img, resize.Lanczos3)
 		p.thumbCache.Set(imgPath, thumb)
 		p.progressValue.Set(float64(i+1) / total)
 	}
 
 	fyne.Do(func() {
+		p.imagePaths = imagePaths
 		p.thumbnails.Refresh()
 		p.progressBox.Hide()
 	})
