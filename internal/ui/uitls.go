@@ -53,7 +53,6 @@ func (p *PicsortUI) showProgressDialog(msg string) {
 		p.progressDialog.Show()
 		p.progress.Show()
 		p.progressValue.Set(0)
-		p.imagePaths = []string{}
 		p.thumbCache = make(map[string]image.Image)
 	})
 }
@@ -61,10 +60,13 @@ func (p *PicsortUI) showProgressDialog(msg string) {
 func (p *PicsortUI) cacheThumbnails(total float64, processedCount *int64) {
 	defer p.wg.Done()
 	for imgPath := range p.jobs {
-		atomic.AddInt64(processedCount, 1)
-		progress := float64(atomic.LoadInt64(processedCount)) / total
-		p.setProgress(progress, filepath.Base(imgPath))
-		if _, found := p.db.GetThumbnail(imgPath); found {
+		if thumb, found := p.db.GetThumbnail(imgPath); found {
+			p.thumbMutex.Lock()
+			p.thumbCache[imgPath] = thumb
+			p.thumbMutex.Unlock()
+			atomic.AddInt64(processedCount, 1)
+			progress := float64(atomic.LoadInt64(processedCount)) / total
+			p.setProgress(progress, filepath.Base(imgPath))
 			continue
 		}
 
@@ -85,6 +87,11 @@ func (p *PicsortUI) cacheThumbnails(total float64, processedCount *int64) {
 		p.thumbMutex.Lock()
 		p.thumbCache[imgPath] = thumb
 		p.thumbMutex.Unlock()
+
+		atomic.AddInt64(processedCount, 1)
+		progress := float64(atomic.LoadInt64(processedCount)) / total
+		p.setProgress(progress, filepath.Base(imgPath))
+
 	}
 }
 
