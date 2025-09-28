@@ -1,0 +1,43 @@
+This application is a desktop picture sorting app. It allows users to upload pictures and organize them into folders.
+The app uses the Go programming language and the fyne UI framework for the UI elements.
+The app is designed to be easy to use and accessible for all users, regardless of their technical expertise. The goal is to be able to easily sort big ammounts of images just using the keyboard.
+
+## The UI
+
+There ar e 3 main components to the frontend: 
+
+* Top bar, contains various helpful buttons such as, open dataset, export, help, etc.
+* The center section composed of:
+  * The left pane shows a thumbnail grid of all the pictures that are yet to be sorted. These are stotred in the backend on the `unsorted` folder.
+  * The right pane shows a preview of the selected picture. any selected pictre anywhere in the app will be shown.
+  * The bottom panes, dynamic between 1 and 10 bins, represent the folders where the pictures are going to be sorted into. this represent the dirs with the same numbering in the backend. Similar to the left pane, each bin shows a thumnail picture of the pictures in that folder. 
+* The bottom bar, contians the buttons to add / remove bins as well as the social media and contacts buttons.
+
+
+## The structure
+
+The application structure as of now is as follows:
+* internal/ui/*.go contains most of the logic 
+* internal/data/*.go contains the data structure for the application
+* internal/database/*.go contains the database logic
+* cmd/main.go contains the main entry point for the application
+
+## THe application
+
+All the application is designed to be respopnsive, and as fast as possible! The focus should always be performance even if if it may cost hardware resources  and is all designed around being usable with the keyboard. The keyboard shortcuts are as follows:
+
+* o: Opens the file input dialog to select pictures to upload.
+* e: Exports the current state
+* t: Focus on the unsorted pictures folder.
+* shift+1-0: Selects the corresponding bottom pane.
+* h,j,k,l: just like vim motions, these keys are used to navigate the thumbnail grid.
+* Arow keys: The same as the h,j,k,l keys.
+* 1 - 0: Moves the selected picture(s) to the corresponding bottom pane.
+* shift + Movement keys: multi selection, Selects the pictures in the corresponding direction.
+* ?: Shows the help screen
+
+
+## The Database
+
+Original files are sacred and we do not want to touch then at any point other then for rendering the preview / and copyting them for an export. therefore,  the application uses a sqlite database to store the data, such as thumbnails, pictures and bins where they are sorted into.
+each dataset has its oen database, and its stored next into the dataset dir.
