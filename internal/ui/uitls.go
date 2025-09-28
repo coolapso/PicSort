@@ -138,3 +138,31 @@ func (p *PicsortUI) loadThumbnails(path string) {
 		p.progressDialog.Hide()
 	})
 }
+
+func (p *PicsortUI) updatePreview() {
+	if p.focusedThumbID < 0 || p.focusedThumbID >= len(p.imagePaths) {
+		return
+	}
+
+	path := p.imagePaths[p.focusedThumbID]
+	go func() {
+		file, err := os.Open(path)
+		if err != nil {
+			log.Printf("could not open file for preview %s: %v", path, err)
+			return
+		}
+		defer file.Close()
+
+		img, _, err := image.Decode(file)
+		if err != nil {
+			log.Printf("could not decode image for preview %s: %v", path, err)
+			return
+		}
+
+		fyne.Do(func() {
+			p.preview.Image = img
+			p.preview.Refresh()
+			p.previewCard.SetSubTitle(filepath.Base(path))
+		})
+	}()
+}

@@ -31,6 +31,8 @@ type PicsortUI struct {
 	progressFile   *widget.Label
 	progressDialog dialog.Dialog
 	focusedThumbID widget.GridWrapItemID
+	preview        *canvas.Image
+	previewCard    *widget.Card
 
 	wg         *sync.WaitGroup
 	jobs       chan string
@@ -104,8 +106,10 @@ func (p *PicsortUI) Build() {
 	p.thumbnails = p.NewThumbnailGrid()
 	centerContent := container.NewBorder(nil, nil, nil, nil, p.thumbnails)
 
-	preview := widget.NewCard("Preview", "Selected image", nil)
-	topSplit := container.NewHSplit(centerContent, preview)
+	p.preview = canvas.NewImageFromImage(nil)
+	p.preview.FillMode = canvas.ImageFillContain
+	p.previewCard = widget.NewCard("Preview", "Selected image", p.preview)
+	topSplit := container.NewHSplit(centerContent, p.previewCard)
 	topSplit.SetOffset(0.3)
 
 	mainContent := container.NewVSplit(topSplit, p.bins)
@@ -155,5 +159,6 @@ func (p *PicsortUI) onKey(e *fyne.KeyEvent) {
 		}
 		p.focusedThumbID = newID
 		p.thumbnails.Select(p.focusedThumbID)
+		p.updatePreview()
 	}
 }
