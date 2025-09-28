@@ -99,6 +99,7 @@ func (p *PicsortUI) loadThumbnails(path string) {
 	}
 
 	p.imagePaths = d.Images
+	p.focusedThumbID = -1
 	total := float64(len(p.imagePaths))
 	var processedCount int64
 
