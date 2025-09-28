@@ -10,6 +10,7 @@ import (
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/data/binding"
 	"fyne.io/fyne/v2/layout"
+	"fyne.io/fyne/v2/theme"
 
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/widget"
@@ -29,9 +30,11 @@ type PicsortUI struct {
 	progressTitle  *widget.Label
 	progressFile   *widget.Label
 	progressDialog dialog.Dialog
-	wg             *sync.WaitGroup
-	jobs           chan string
-	thumbMutex     *sync.Mutex
+	focusedThumbID widget.GridWrapItemID
+
+	wg         *sync.WaitGroup
+	jobs       chan string
+	thumbMutex *sync.Mutex
 }
 
 func New(a fyne.App, w fyne.Window) *PicsortUI {
@@ -42,7 +45,6 @@ func New(a fyne.App, w fyne.Window) *PicsortUI {
 		progressValue: binding.NewFloat(),
 		progressTitle: widget.NewLabel(""),
 		progressFile:  widget.NewLabel(""),
-		thumbMutex:    &sync.Mutex{},
 	}
 }
 
@@ -110,5 +112,48 @@ func (p *PicsortUI) Build() {
 	mainContent.SetOffset(0.8)
 
 	p.win.SetContent(container.NewBorder(topBar, bottomBar, nil, nil, mainContent))
+	p.win.Canvas().SetOnTypedKey(p.onKey)
 	p.win.Resize(fyne.NewSize(1280, 720))
+}
+
+func (p *PicsortUI) onKey(e *fyne.KeyEvent) {
+	if len(p.imagePaths) == 0 {
+		return
+	}
+
+	newID := p.focusedThumbID
+	if newID < 0 {
+		newID = 0
+	}
+
+	switch e.Name {
+	case fyne.KeyH:
+		if newID > 0 {
+			newID--
+		}
+	case fyne.KeyL:
+		if newID < len(p.imagePaths)-1 {
+			newID++
+		}
+	case fyne.KeyK:
+		cols := p.thumbnails.Size().Width / (p.thumbnails.MinSize().Width + theme.Padding())
+		if cols > 0 && newID-int(cols) >= 0 {
+			newID -= int(cols)
+		}
+	case fyne.KeyJ:
+		cols := p.thumbnails.Size().Width / (p.thumbnails.MinSize().Width + theme.Padding())
+		if cols > 0 && newID+int(cols) < len(p.imagePaths) {
+			newID += int(cols)
+		}
+	default:
+		return
+	}
+
+	if newID != p.focusedThumbID {
+		if p.focusedThumbID != -1 {
+			p.thumbnails.Unselect(p.focusedThumbID)
+		}
+		p.focusedThumbID = newID
+		p.thumbnails.Select(p.focusedThumbID)
+	}
 }
