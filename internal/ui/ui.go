@@ -71,7 +71,6 @@ func (p *PicsortUI) NewThumbnailGrid() *widget.GridWrap {
 			return len(p.imagePaths)
 		},
 		func() fyne.CanvasObject {
-			// Each cell: background highlight rectangle + image
 			bg := canvas.NewRectangle(color.NRGBA{0, 0, 0, 0})
 			img := canvas.NewImageFromImage(nil)
 			img.FillMode = canvas.ImageFillContain
@@ -95,7 +94,6 @@ func (p *PicsortUI) NewThumbnailGrid() *widget.GridWrap {
 				}
 			}
 
-			// Paint highlight state
 			switch {
 			case p.isSelected(i):
 				bg.FillColor = theme.SelectionColor()
@@ -108,7 +106,7 @@ func (p *PicsortUI) NewThumbnailGrid() *widget.GridWrap {
 			img.Refresh()
 		},
 	)
-	// Mouse click selection behavior
+
 	grid.OnSelected = func(id widget.GridWrapItemID) {
 		p.handleClickSelect(id)
 	}
@@ -169,10 +167,7 @@ func (p *PicsortUI) onKey(e *fyne.KeyEvent) {
 		return
 	}
 
-	newID := p.focusedThumbID
-	if newID < 0 {
-		newID = 0
-	}
+	newID := max(p.focusedThumbID, 0)
 
 	switch e.Name {
 	case fyne.KeyH:
@@ -234,10 +229,8 @@ func (p *PicsortUI) visibleCols() widget.GridWrapItemID {
 	if totalW <= 0 {
 		return 1
 	}
-	cols := int(totalW / float32(cellW))
-	if cols < 1 {
-		cols = 1
-	}
+	cols := max(int(totalW/float32(cellW)), 1)
+
 	return widget.GridWrapItemID(cols)
 }
 
