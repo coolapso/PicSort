@@ -143,26 +143,17 @@ func (p *PicsortUI) Build() {
 	mainContent.SetOffset(0.8)
 
 	p.win.SetContent(container.NewBorder(topBar, bottomBar, nil, nil, mainContent))
-	p.win.Canvas().SetOnTypedKey(p.onKey)
-	if dc, ok := p.win.Canvas().(desktop.Canvas); ok {
-		dc.SetOnKeyDown(func(e *fyne.KeyEvent) {
-			if e.Name == "RightShift" || e.Name == "LeftShift" {
-				p.shiftPressed = true
-				if p.selectionAnchor == -1 && p.focusedThumbID >= 0 {
-					p.selectionAnchor = p.focusedThumbID
-				}
-			}
-		})
-		dc.SetOnKeyUp(func(e *fyne.KeyEvent) {
-			if e.Name == "LeftShift" || e.Name == "RightShift" {
-				p.shiftPressed = false
-			}
-		})
-	}
+	p.win.Canvas().SetOnTypedKey(p.navigation)
 	p.win.Resize(fyne.NewSize(1280, 720))
 }
 
-func (p *PicsortUI) onKey(e *fyne.KeyEvent) {
+func (p *PicsortUI) navigation(e *fyne.KeyEvent) {
+	fmt.Println(e.Name)
+	var extended bool
+	if fyne.CurrentApp().Driver().(desktop.Driver).CurrentKeyModifiers() == 1 {
+		extended = true
+	}
+
 	if len(p.imagePaths) == 0 {
 		return
 	}
@@ -198,7 +189,7 @@ func (p *PicsortUI) onKey(e *fyne.KeyEvent) {
 
 	p.focusedThumbID = newID
 
-	if !p.shiftPressed {
+	if !extended {
 		p.clearSelection()
 		p.addSelection(newID)
 		p.selectionAnchor = newID
@@ -256,21 +247,22 @@ func (p *PicsortUI) handleClickSelect(id widget.GridWrapItemID) {
 	if id < 0 || id >= widget.GridWrapItemID(len(p.imagePaths)) {
 		return
 	}
+
+	p.clearSelection()
 	p.focusedThumbID = id
 	if !p.shiftPressed || p.selectionAnchor == -1 {
-		p.clearSelection()
-		p.addSelection(id)
 		p.selectionAnchor = id
-	} else {
-		p.clearSelection()
-		start, end := p.selectionAnchor, id
-		if start > end {
-			start, end = end, start
-		}
-		for i := start; i <= end; i++ {
-			p.addSelection(i)
-		}
+		p.addSelection(id)
 	}
+
+	start, end := p.selectionAnchor, id
+	if start > end {
+		start, end = end, start
+	}
+	for i := start; i <= end; i++ {
+		p.addSelection(i)
+	}
+
 	p.updatePreview()
-	p.thumbnails.Refresh()
+	p.win.Canvas().Focus(p.thumbnails)
 }
