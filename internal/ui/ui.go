@@ -66,7 +66,7 @@ func (p *PicsortUI) sortingBins() {
 }
 
 func (p *PicsortUI) NewThumbnailGrid() *widget.GridWrap {
-	grid := widget.NewGridWrap(
+	return widget.NewGridWrap(
 		func() int {
 			return len(p.imagePaths)
 		},
@@ -106,11 +106,6 @@ func (p *PicsortUI) NewThumbnailGrid() *widget.GridWrap {
 			img.Refresh()
 		},
 	)
-
-	grid.OnSelected = func(id widget.GridWrapItemID) {
-		p.handleClickSelect(id)
-	}
-	return grid
 }
 
 func (p *PicsortUI) Build() {
@@ -131,8 +126,11 @@ func (p *PicsortUI) Build() {
 	topBar := p.topBar()
 	bottomBar := p.bottomBar()
 	p.thumbnails = p.NewThumbnailGrid()
-	centerContent := container.NewBorder(nil, nil, nil, nil, p.thumbnails)
+	p.thumbnails.OnSelected = func(id widget.GridWrapItemID) {
+		p.handleClickSelect(id)
+	}
 
+	centerContent := container.NewBorder(nil, nil, nil, nil, p.thumbnails)
 	p.preview = canvas.NewImageFromImage(nil)
 	p.preview.FillMode = canvas.ImageFillContain
 	p.previewCard = widget.NewCard("Preview", "Selected image", p.preview)
