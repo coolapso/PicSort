@@ -3,7 +3,10 @@ package ui
 import (
 	"fmt"
 	"image"
-	"image/color"
+	"slices"
+
+	// "image/color"
+	// "reflect"
 	"sync"
 
 	"fyne.io/fyne/v2"
@@ -12,7 +15,8 @@ import (
 	"fyne.io/fyne/v2/data/binding"
 	"fyne.io/fyne/v2/driver/desktop"
 	"fyne.io/fyne/v2/layout"
-	"fyne.io/fyne/v2/theme"
+
+	// "fyne.io/fyne/v2/theme"
 
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/widget"
@@ -20,10 +24,11 @@ import (
 )
 
 type PicsortUI struct {
-	app            fyne.App
-	win            fyne.Window
-	bins           *fyne.Container
-	thumbnails     *widget.GridWrap
+	app  fyne.App
+	win  fyne.Window
+	bins *fyne.Container
+	// thumbnails     *widget.GridWrap
+	thumbnails     *ThumbnailGridWrap
 	db             *database.DB
 	thumbCache     map[string]image.Image
 	imagePaths     []string
@@ -32,30 +37,87 @@ type PicsortUI struct {
 	progressTitle  *widget.Label
 	progressFile   *widget.Label
 	progressDialog dialog.Dialog
-	focusedThumbID widget.GridWrapItemID
 	preview        *canvas.Image
 	previewCard    *widget.Card
 
 	wg         *sync.WaitGroup
 	jobs       chan string
 	thumbMutex *sync.Mutex
-
-	shiftPressed    bool
-	selectionAnchor widget.GridWrapItemID
-	selectedIndices map[widget.GridWrapItemID]struct{}
 }
 
 func New(a fyne.App, w fyne.Window) *PicsortUI {
 	return &PicsortUI{
-		app:             a,
-		win:             w,
-		thumbCache:      make(map[string]image.Image),
-		progressValue:   binding.NewFloat(),
-		progressTitle:   widget.NewLabel(""),
-		progressFile:    widget.NewLabel(""),
-		selectionAnchor: -1,
-		selectedIndices: make(map[widget.GridWrapItemID]struct{}),
+		app:           a,
+		win:           w,
+		thumbCache:    make(map[string]image.Image),
+		progressValue: binding.NewFloat(),
+		progressTitle: widget.NewLabel(""),
+		progressFile:  widget.NewLabel(""),
 	}
+}
+
+type ThumbnailGridWrap struct {
+	widget.GridWrap
+	selectionAnchor widget.GridWrapItemID
+	selectedPaths   []string
+	OnNavigated     func(widget.GridWrapItemID)
+}
+
+func NewThumbnailGridWrap(length func() int, createItem func() fyne.CanvasObject, updateItem func(widget.GridWrapItemID, fyne.CanvasObject)) *ThumbnailGridWrap {
+	grid := &ThumbnailGridWrap{
+		selectionAnchor: -1,
+		selectedPaths:   []string{},
+	}
+	grid.Length = length
+	grid.CreateItem = createItem
+	grid.UpdateItem = updateItem
+	grid.ExtendBaseWidget(grid)
+	return grid
+}
+
+// Workaround for fyne main branch without OnNavigated
+// func (t *ThumbnailGridWrap) getScrolledID() widget.GridWrapItemID {
+// 	v := reflect.ValueOf(t).Elem().FieldByName("GridWrap")
+// 	if !v.IsValid() {
+// 		return -1
+// 	}
+//
+// 	field := v.FieldByName("currentFocus")
+// 	if !field.IsValid() {
+// 		return -1
+// 	}
+//
+// 	field = reflect.NewAt(field.Type(), field.Addr().UnsafePointer()).Elem()
+//
+// 	if id, ok := field.Interface().(widget.GridWrapItemID); ok {
+// 		return id
+// 	}
+// 	return -1
+// }
+
+func (g *ThumbnailGridWrap) TypedKey(key *fyne.KeyEvent) {
+	// beforeID := g.getScrolledID()
+	translatedKey := *key
+	switch translatedKey.Name {
+	case fyne.KeyH:
+		translatedKey.Name = fyne.KeyLeft
+	case fyne.KeyJ:
+		translatedKey.Name = fyne.KeyDown
+	case fyne.KeyK:
+		translatedKey.Name = fyne.KeyUp
+	case fyne.KeyL:
+		translatedKey.Name = fyne.KeyRight
+	case fyne.KeyEscape:
+		g.UnselectAll()
+	}
+
+	g.GridWrap.TypedKey(&translatedKey)
+
+	// afterID := g.getScrolledID()
+
+	// if g.OnNavigated != nil && beforeID != afterID && afterID != -1 {
+	// 	g.OnNavigated(afterID)
+	// }
 }
 
 func (p *PicsortUI) sortingBins() {
@@ -64,28 +126,27 @@ func (p *PicsortUI) sortingBins() {
 		p.bins.Add(widget.NewCard(fmt.Sprintf("Bin %d", i), "", nil))
 	}
 }
-
-func (p *PicsortUI) NewThumbnailGrid() *widget.GridWrap {
-	return widget.NewGridWrap(
+func (p *PicsortUI) NewThumbnailGrid() *ThumbnailGridWrap {
+	return NewThumbnailGridWrap(
 		func() int {
 			return len(p.imagePaths)
 		},
 		func() fyne.CanvasObject {
-			bg := canvas.NewRectangle(color.NRGBA{0, 0, 0, 0})
 			img := canvas.NewImageFromImage(nil)
 			img.FillMode = canvas.ImageFillContain
 			img.SetMinSize(fyne.NewSize(200, 200))
-			return container.NewMax(bg, img)
+			return container.NewStack(img)
 		},
 		func(i widget.GridWrapItemID, o fyne.CanvasObject) {
 			if i >= len(p.imagePaths) {
 				return
 			}
-			c := o.(*fyne.Container)
-			bg := c.Objects[0].(*canvas.Rectangle)
-			img := c.Objects[1].(*canvas.Image)
+			thumb := o.(*fyne.Container)
+			img := thumb.Objects[0].(*canvas.Image)
 
 			path := p.imagePaths[i]
+			p.thumbMutex.Lock()
+			defer p.thumbMutex.Unlock()
 			if thumb, ok := p.thumbCache[path]; ok {
 				img.Image = thumb
 			} else {
@@ -93,19 +154,17 @@ func (p *PicsortUI) NewThumbnailGrid() *widget.GridWrap {
 					img.Image = t
 				}
 			}
-
-			switch {
-			case p.isSelected(i):
-				bg.FillColor = theme.SelectionColor()
-			case i == p.focusedThumbID:
-				bg.FillColor = color.NRGBA{R: 50, G: 50, B: 50, A: 90}
-			default:
-				bg.FillColor = color.NRGBA{0, 0, 0, 0}
-			}
-			bg.Refresh()
 			img.Refresh()
 		},
 	)
+}
+
+func isExtendedSelection() bool {
+	if fyne.CurrentApp().Driver().(desktop.Driver).CurrentKeyModifiers() == 1 {
+		return true
+	}
+
+	return false
 }
 
 func (p *PicsortUI) Build() {
@@ -127,140 +186,80 @@ func (p *PicsortUI) Build() {
 	bottomBar := p.bottomBar()
 	p.thumbnails = p.NewThumbnailGrid()
 	p.thumbnails.OnSelected = func(id widget.GridWrapItemID) {
-		p.handleClickSelect(id)
+		if id >= len(p.imagePaths) {
+			return
+		}
+		path := p.imagePaths[id]
+
+		if slices.Contains(p.thumbnails.selectedPaths, p.imagePaths[id]) {
+			return
+		}
+
+		if isExtendedSelection() {
+			if p.thumbnails.selectionAnchor == -1 {
+				p.thumbnails.selectionAnchor = id
+			}
+			start, end := p.thumbnails.selectionAnchor, id
+			if start > end {
+				start, end = end, start
+			}
+
+			p.thumbnails.selectedPaths = []string{}
+			for i := start; i <= end; i++ {
+				p.thumbnails.selectedPaths = append(p.thumbnails.selectedPaths, p.imagePaths[i])
+				p.thumbnails.Select(i)
+			}
+			return
+		}
+		p.thumbnails.selectionAnchor = id
+		p.thumbnails.selectedPaths = []string{path}
 	}
 
-	centerContent := container.NewBorder(nil, nil, nil, nil, p.thumbnails)
+	p.thumbnails.OnHighlighted = func(id widget.GridWrapItemID) {
+		if id >= len(p.imagePaths) {
+			return
+		}
+		path := p.imagePaths[id]
+		p.updatePreview(path)
+		if isExtendedSelection() {
+			p.thumbnails.Select(id)
+		}
+	}
+
+	p.thumbnails.OnHovered = func(id widget.GridWrapItemID) {
+		// fmt.Println("highlighted:", id)
+		path := p.imagePaths[id]
+		p.updatePreview(path)
+		if isExtendedSelection() {
+			p.thumbnails.Select(id)
+		}
+	}
+
+	// OnHighlighted is on a custom branch of my fork, not yet on upstream.
+	// This is the alternative in case it doesn't get merged.
+	// p.thumbnails.OnNavigated = func(id widget.GridWrapItemID) {
+	// 	path := p.imagePaths[id]
+	// 	p.updatePreview(path)
+	// 	if isExtendedSelection() {
+	// 		if p.selectionAnchor == -1 {
+	// 			p.selectionAnchor = id
+	// 			p.thumbnails.Select(id)
+	// 			p.selectedPaths = append(p.selectedPaths, path)
+	// 			return
+	// 		}
+	// 		p.thumbnails.Select(id)
+	// 	}
+	// }
+
 	p.preview = canvas.NewImageFromImage(nil)
 	p.preview.FillMode = canvas.ImageFillContain
 	p.previewCard = widget.NewCard("Preview", "Selected image", p.preview)
-	topSplit := container.NewHSplit(centerContent, p.previewCard)
+	topSplit := container.NewHSplit(p.thumbnails, p.previewCard)
 	topSplit.SetOffset(0.3)
 
 	mainContent := container.NewVSplit(topSplit, p.bins)
 	mainContent.SetOffset(0.8)
 
 	p.win.SetContent(container.NewBorder(topBar, bottomBar, nil, nil, mainContent))
-	p.win.Canvas().SetOnTypedKey(p.navigation)
 	p.win.Resize(fyne.NewSize(1280, 720))
-}
-
-func (p *PicsortUI) navigation(e *fyne.KeyEvent) {
-	fmt.Println(e.Name)
-	var extended bool
-	if fyne.CurrentApp().Driver().(desktop.Driver).CurrentKeyModifiers() == 1 {
-		extended = true
-	}
-
-	if len(p.imagePaths) == 0 {
-		return
-	}
-
-	newID := max(p.focusedThumbID, 0)
-
-	switch e.Name {
-	case fyne.KeyH:
-		if newID > 0 {
-			newID--
-		}
-	case fyne.KeyL:
-		if newID < widget.GridWrapItemID(len(p.imagePaths))-1 {
-			newID++
-		}
-	case fyne.KeyK:
-		cols := p.visibleCols()
-		if cols > 0 && newID-cols >= 0 {
-			newID -= cols
-		}
-	case fyne.KeyJ:
-		cols := p.visibleCols()
-		if cols > 0 && newID+cols < widget.GridWrapItemID(len(p.imagePaths)) {
-			newID += cols
-		}
-	default:
-		return
-	}
-
-	if newID == p.focusedThumbID {
-		return
-	}
-
-	p.focusedThumbID = newID
-
-	if !extended {
-		p.clearSelection()
-		p.addSelection(newID)
-		p.selectionAnchor = newID
-	} else {
-		if p.selectionAnchor == -1 {
-			p.selectionAnchor = newID
-			p.clearSelection()
-			p.addSelection(newID)
-		} else {
-			p.clearSelection()
-			start, end := p.selectionAnchor, newID
-			if start > end {
-				start, end = end, start
-			}
-			for i := start; i <= end; i++ {
-				p.addSelection(i)
-			}
-		}
-	}
-
-	p.updatePreview()
-	p.thumbnails.Refresh()
-}
-
-func (p *PicsortUI) visibleCols() widget.GridWrapItemID {
-	cellW := 200 + theme.Padding()
-	totalW := p.thumbnails.Size().Width
-	if totalW <= 0 {
-		return 1
-	}
-	cols := max(int(totalW/float32(cellW)), 1)
-
-	return widget.GridWrapItemID(cols)
-}
-
-func (p *PicsortUI) isSelected(id widget.GridWrapItemID) bool {
-	_, ok := p.selectedIndices[id]
-	return ok
-}
-
-func (p *PicsortUI) addSelection(id widget.GridWrapItemID) {
-	p.selectedIndices[id] = struct{}{}
-}
-
-func (p *PicsortUI) clearSelection() {
-	if len(p.selectedIndices) == 0 {
-		return
-	}
-	for k := range p.selectedIndices {
-		delete(p.selectedIndices, k)
-	}
-}
-
-func (p *PicsortUI) handleClickSelect(id widget.GridWrapItemID) {
-	if id < 0 || id >= widget.GridWrapItemID(len(p.imagePaths)) {
-		return
-	}
-
-	p.clearSelection()
-	p.focusedThumbID = id
-	if !p.shiftPressed || p.selectionAnchor == -1 {
-		p.selectionAnchor = id
-		p.addSelection(id)
-	}
-
-	start, end := p.selectionAnchor, id
-	if start > end {
-		start, end = end, start
-	}
-	for i := start; i <= end; i++ {
-		p.addSelection(i)
-	}
-
-	p.updatePreview()
-	p.win.Canvas().Focus(p.thumbnails)
 }
