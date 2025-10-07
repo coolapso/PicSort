@@ -24,14 +24,6 @@ import (
 	"github.com/coolapso/picsort/internal/database"
 )
 
-// var _ fyne.Disableable = (*ThumbnailGridWrap)(nil)
-//
-// func (g *ThumbnailGridWrap) Disabled() bool { return true }
-//
-// func (g *ThumbnailGridWrap) Disable() {}
-//
-// func (g *ThumbnailGridWrap) Enable() {}
-
 type PicsortUI struct {
 	app  fyne.App
 	win  fyne.Window
@@ -117,14 +109,15 @@ func (g *ThumbnailGridWrap) TypedKey(key *fyne.KeyEvent) {
 	case fyne.KeyL:
 		translatedKey.Name = fyne.KeyRight
 	case fyne.KeyEscape:
-		g.UnselectAll()
+		g.unselectAll()
 	}
 
 	g.GridWrap.TypedKey(&translatedKey)
 }
 
-func (g *ThumbnailGridWrap) UnselectAll() {
+func (g *ThumbnailGridWrap) unselectAll() {
 	g.selectedIDs = []widget.GridWrapItemID{}
+	g.selectionAnchor = -1
 	g.Refresh()
 }
 
@@ -140,14 +133,6 @@ type ImageCheck struct {
 	Image     image.Image
 	Checked   bool
 	OnChanged func(bool)
-}
-
-func (ic *ImageCheck) Tapped(_ *fyne.PointEvent) {
-	ic.Checked = !ic.Checked
-	ic.Refresh()
-	if ic.OnChanged != nil {
-		ic.OnChanged(ic.Checked)
-	}
 }
 
 func (ic *ImageCheck) CreateRenderer() fyne.WidgetRenderer {
@@ -248,7 +233,6 @@ func (p *PicsortUI) NewThumbnailGrid() *ThumbnailGridWrap {
 						p.thumbnails.selectedIDs = slices.Delete(p.thumbnails.selectedIDs, idx, idx+1)
 					}
 				}
-				// No need to call Refresh here, Tapped already does.
 			}
 			imgCheck.Refresh()
 		},
@@ -285,40 +269,18 @@ func (p *PicsortUI) Build() {
 		if id >= len(p.imagePaths) {
 			return
 		}
+		fmt.Println(len(p.thumbnails.selectedIDs))
+		fmt.Println(p.thumbnails.selectedIDs)
 
-		if isExtendedSelection() {
-			if p.thumbnails.selectionAnchor == -1 {
-				p.thumbnails.selectionAnchor = id - 1
-			}
-			start, end := p.thumbnails.selectionAnchor, id
-			if start > end {
-				start, end = end, start
-			}
-
-			for i := start; i <= end; i++ {
-				if !slices.Contains(p.thumbnails.selectedIDs, i) {
-					p.thumbnails.selectedIDs = append(p.thumbnails.selectedIDs, i)
-				}
-			}
+		if idx := slices.Index(p.thumbnails.selectedIDs, id); idx != -1 {
+			p.thumbnails.selectedIDs = slices.Delete(p.thumbnails.selectedIDs, idx, idx+1)
 		} else {
-			if idx := slices.Index(p.thumbnails.selectedIDs, id); idx != -1 {
-				p.thumbnails.selectedIDs = slices.Delete(p.thumbnails.selectedIDs, idx, idx+1)
-			} else {
-				p.thumbnails.selectedIDs = append(p.thumbnails.selectedIDs, id)
-			}
+			p.thumbnails.selectedIDs = append(p.thumbnails.selectedIDs, id)
 		}
 		p.thumbnails.Refresh()
 	}
 
-	// p.thumbnails.OnUnselected = func(id widget.GridWrapItemID) {
-	// 	// This might not be necessary anymore if Tapped handles everything.
-	// 	if idx := slices.Index(p.thumbnails.selectedIDs, id); idx != -1 {
-	// 		p.thumbnails.selectedIDs = slices.Delete(p.thumbnails.selectedIDs, idx, idx+1)
-	// 		p.thumbnails.Refresh()
-	// 	}
-	// }
 	p.thumbnails.OnUnselected = nil
-
 	p.thumbnails.OnHighlighted = func(id widget.GridWrapItemID) {
 		if id >= len(p.imagePaths) {
 			return
