@@ -307,9 +307,6 @@ func (p *PicsortUI) Build() {
 	// 	// fmt.Println("highlighted:", id)
 	// 	path := p.imagePaths[id]
 	// 	p.updatePreview(path)
-	// 	if isExtendedSelection() {
-	//
-	// 	}
 	// }
 
 	p.preview = canvas.NewImageFromImage(nil)
