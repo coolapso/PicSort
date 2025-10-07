@@ -198,11 +198,6 @@ func (p *PicsortUI) NewThumbnailGrid() *ThumbnailGridWrap {
 			return len(p.imagePaths)
 		},
 		func() fyne.CanvasObject {
-			// img := canvas.NewImageFromImage(nil)
-			// img.FillMode = canvas.ImageFillContain
-			// img.SetMinSize(fyne.NewSize(200, 200))
-			// bg := canvas.NewRectangle(color.Transparent)
-			// return container.NewStack(bg, img)
 			return NewImageCheck(nil, nil)
 		},
 		func(i widget.GridWrapItemID, o fyne.CanvasObject) {
@@ -269,24 +264,28 @@ func (p *PicsortUI) Build() {
 		if id >= len(p.imagePaths) {
 			return
 		}
-		fmt.Println(len(p.thumbnails.selectedIDs))
-		fmt.Println(p.thumbnails.selectedIDs)
 
 		if idx := slices.Index(p.thumbnails.selectedIDs, id); idx != -1 {
 			p.thumbnails.selectedIDs = slices.Delete(p.thumbnails.selectedIDs, idx, idx+1)
 		} else {
 			p.thumbnails.selectedIDs = append(p.thumbnails.selectedIDs, id)
 		}
+
 		p.thumbnails.Refresh()
 	}
 
 	p.thumbnails.OnUnselected = nil
+
 	p.thumbnails.OnHighlighted = func(id widget.GridWrapItemID) {
 		if id >= len(p.imagePaths) {
 			return
 		}
 		path := p.imagePaths[id]
 		p.updatePreview(path)
+
+		if !isExtendedSelection() {
+			p.thumbnails.selectionAnchor = -1
+		}
 
 		if isExtendedSelection() {
 			if p.thumbnails.selectionAnchor == -1 {
@@ -297,8 +296,6 @@ func (p *PicsortUI) Build() {
 				start, end = end, start
 			}
 
-			// Clear previous selection and select the new range
-			p.thumbnails.selectedIDs = []widget.GridWrapItemID{}
 			for i := start; i <= end; i++ {
 				p.thumbnails.selectedIDs = append(p.thumbnails.selectedIDs, i)
 			}
