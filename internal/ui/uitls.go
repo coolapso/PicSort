@@ -3,7 +3,6 @@ package ui
 import (
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/dialog"
-	"fyne.io/fyne/v2/widget"
 	"github.com/coolapso/picsort/internal/data"
 	"github.com/coolapso/picsort/internal/database"
 	"github.com/nfnt/resize"
@@ -107,10 +106,6 @@ func (p *PicsortUI) loadThumbnails(path string) {
 	}
 
 	p.imagePaths = d.Images
-	p.focusedThumbID = -1
-	p.selectionAnchor = -1
-	p.clearSelection()
-	p.selectedIndices = make(map[widget.GridWrapItemID]struct{})
 	fyne.Do(func() { p.thumbnails.Refresh() })
 
 	total := float64(len(p.imagePaths))
@@ -142,15 +137,11 @@ func (p *PicsortUI) loadThumbnails(path string) {
 	fyne.Do(func() {
 		p.thumbnails.Refresh()
 		p.progressDialog.Hide()
+		p.win.Canvas().Focus(p.thumbnails)
 	})
 }
 
-func (p *PicsortUI) updatePreview() {
-	if p.focusedThumbID < 0 || p.focusedThumbID >= len(p.imagePaths) {
-		return
-	}
-
-	path := p.imagePaths[p.focusedThumbID]
+func (p *PicsortUI) updatePreview(path string) {
 	go func() {
 		file, err := os.Open(path)
 		if err != nil {
