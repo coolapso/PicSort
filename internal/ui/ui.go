@@ -5,7 +5,7 @@ import (
 	"image"
 	"slices"
 
-	"image/color"
+	// "image/color"
 	// "reflect"
 	"sync"
 
@@ -23,6 +23,14 @@ import (
 	"fyne.io/fyne/v2/widget"
 	"github.com/coolapso/picsort/internal/database"
 )
+
+// var _ fyne.Disableable = (*ThumbnailGridWrap)(nil)
+//
+// func (g *ThumbnailGridWrap) Disabled() bool { return true }
+//
+// func (g *ThumbnailGridWrap) Disable() {}
+//
+// func (g *ThumbnailGridWrap) Enable() {}
 
 type PicsortUI struct {
 	app  fyne.App
@@ -60,14 +68,14 @@ func New(a fyne.App, w fyne.Window) *PicsortUI {
 type ThumbnailGridWrap struct {
 	widget.GridWrap
 	selectionAnchor widget.GridWrapItemID
-	selectedPaths   []string
+	selectedIDs     []widget.GridWrapItemID
 	OnNavigated     func(widget.GridWrapItemID)
 }
 
 func NewThumbnailGridWrap(length func() int, createItem func() fyne.CanvasObject, updateItem func(widget.GridWrapItemID, fyne.CanvasObject)) *ThumbnailGridWrap {
 	grid := &ThumbnailGridWrap{
 		selectionAnchor: -1,
-		selectedPaths:   []string{},
+		selectedIDs:     []widget.GridWrapItemID{},
 	}
 	grid.Length = length
 	grid.CreateItem = createItem
@@ -127,45 +135,130 @@ func (p *PicsortUI) sortingBins() {
 		p.bins.Add(widget.NewCard(fmt.Sprintf("Bin %d", i), "", nil))
 	}
 }
+
+type ImageCheck struct {
+	widget.BaseWidget
+	Image     image.Image
+	Checked   bool
+	OnChanged func(bool)
+}
+
+func (ic *ImageCheck) Tapped(_ *fyne.PointEvent) {
+	ic.Checked = !ic.Checked
+	ic.Refresh()
+	if ic.OnChanged != nil {
+		ic.OnChanged(ic.Checked)
+	}
+}
+
+// func (ic *ImageCheck) TypedKey(key *fyne.KeyEvent) {
+// 	switch key.Name {
+// 	case fyne.KeySpace:
+// 		ic.Tapped(&fyne.PointEvent{})
+// 	}
+// }
+
+func (ic *ImageCheck) CreateRenderer() fyne.WidgetRenderer {
+	r := &imageCheckRenderer{
+		imageCheck: ic,
+		thumb:      canvas.NewImageFromImage(ic.Image),
+		checkIcon:  canvas.NewImageFromResource(theme.CheckButtonIcon()),
+	}
+	r.thumb.FillMode = canvas.ImageFillContain
+	r.checkIcon.Hide()
+	return r
+}
+
+type imageCheckRenderer struct {
+	imageCheck *ImageCheck
+	thumb      *canvas.Image
+	checkIcon  *canvas.Image
+}
+
+func (r *imageCheckRenderer) Layout(size fyne.Size) {
+	r.thumb.Resize(size)
+	r.checkIcon.Resize(fyne.NewSize(theme.IconInlineSize(), theme.IconInlineSize()))
+	r.checkIcon.Move(fyne.NewPos(size.Width-theme.IconInlineSize()-theme.Padding(), theme.Padding()))
+}
+
+func (r *imageCheckRenderer) MinSize() fyne.Size {
+	return fyne.NewSize(200, 200)
+}
+
+func (r *imageCheckRenderer) Refresh() {
+	r.thumb.Image = r.imageCheck.Image
+	r.thumb.Refresh()
+	if r.imageCheck.Checked {
+		r.checkIcon.Resource = theme.CheckButtonCheckedIcon()
+		r.checkIcon.Show()
+	} else {
+		r.checkIcon.Resource = theme.CheckButtonIcon()
+		r.checkIcon.Hide()
+	}
+	r.checkIcon.Refresh()
+	canvas.Refresh(r.imageCheck)
+}
+
+func (r *imageCheckRenderer) Objects() []fyne.CanvasObject {
+	return []fyne.CanvasObject{r.thumb, r.checkIcon}
+}
+
+func (r *imageCheckRenderer) Destroy() {}
+
+func NewImageCheck(img image.Image, onChanged func(bool)) *ImageCheck {
+	ic := &ImageCheck{
+		Image:     img,
+		OnChanged: onChanged,
+	}
+
+	ic.ExtendBaseWidget(ic)
+	return ic
+}
+
 func (p *PicsortUI) NewThumbnailGrid() *ThumbnailGridWrap {
 	return NewThumbnailGridWrap(
 		func() int {
 			return len(p.imagePaths)
 		},
 		func() fyne.CanvasObject {
-			img := canvas.NewImageFromImage(nil)
-			img.FillMode = canvas.ImageFillContain
-			img.SetMinSize(fyne.NewSize(200, 200))
-			bg := canvas.NewRectangle(color.Transparent)
-			return container.NewStack(bg, img)
+			// img := canvas.NewImageFromImage(nil)
+			// img.FillMode = canvas.ImageFillContain
+			// img.SetMinSize(fyne.NewSize(200, 200))
+			// bg := canvas.NewRectangle(color.Transparent)
+			// return container.NewStack(bg, img)
+			return NewImageCheck(nil, nil)
 		},
 		func(i widget.GridWrapItemID, o fyne.CanvasObject) {
 			if i >= len(p.imagePaths) {
 				return
 			}
-			fmt.Println(i)
 			path := p.imagePaths[i]
-			stack := o.(*fyne.Container)
-			bg := stack.Objects[0].(*canvas.Rectangle)
-			img := stack.Objects[1].(*canvas.Image)
+			imgCheck := o.(*ImageCheck)
 
 			p.thumbMutex.Lock()
-			defer p.thumbMutex.Unlock()
 			if thumb, ok := p.thumbCache[path]; ok {
-				img.Image = thumb
+				imgCheck.Image = thumb
 			} else {
 				if t, found := p.db.GetThumbnail(path); found {
-					img.Image = t
+					imgCheck.Image = t
 				}
 			}
-			img.Refresh()
+			p.thumbMutex.Unlock()
 
-			if slices.Contains(p.thumbnails.selectedPaths, path) {
-				bg.FillColor = theme.Color(theme.ColorNameSelection)
-			} else {
-				bg.FillColor = color.Transparent
+			imgCheck.Checked = slices.Contains(p.thumbnails.selectedIDs, i)
+			imgCheck.OnChanged = func(checked bool) {
+				if checked {
+					if !slices.Contains(p.thumbnails.selectedIDs, i) {
+						p.thumbnails.selectedIDs = append(p.thumbnails.selectedIDs, i)
+					}
+				} else {
+					if idx := slices.Index(p.thumbnails.selectedIDs, i); idx != -1 {
+						p.thumbnails.selectedIDs = slices.Delete(p.thumbnails.selectedIDs, idx, idx+1)
+					}
+				}
+				// No need to call Refresh here, Tapped already does.
 			}
-			bg.Refresh()
+			imgCheck.Refresh()
 		},
 	)
 }
@@ -200,11 +293,10 @@ func (p *PicsortUI) Build() {
 		if id >= len(p.imagePaths) {
 			return
 		}
-		path := p.imagePaths[id]
 
 		if isExtendedSelection() {
 			if p.thumbnails.selectionAnchor == -1 {
-				p.thumbnails.selectionAnchor = id
+				p.thumbnails.selectionAnchor = id - 1
 			}
 			start, end := p.thumbnails.selectionAnchor, id
 			if start > end {
@@ -212,29 +304,28 @@ func (p *PicsortUI) Build() {
 			}
 
 			for i := start; i <= end; i++ {
-				itemPath := p.imagePaths[i]
-				if !slices.Contains(p.thumbnails.selectedPaths, itemPath) {
-					p.thumbnails.selectedPaths = append(p.thumbnails.selectedPaths, itemPath)
+				if !slices.Contains(p.thumbnails.selectedIDs, i) {
+					p.thumbnails.selectedIDs = append(p.thumbnails.selectedIDs, i)
 				}
 			}
 		} else {
-			p.thumbnails.selectionAnchor = id
-			if idx := slices.Index(p.thumbnails.selectedPaths, path); idx != -1 {
-				p.thumbnails.selectedPaths = slices.Delete(p.thumbnails.selectedPaths, idx, idx+1)
+			if idx := slices.Index(p.thumbnails.selectedIDs, id); idx != -1 {
+				p.thumbnails.selectedIDs = slices.Delete(p.thumbnails.selectedIDs, idx, idx+1)
 			} else {
-				p.thumbnails.selectedPaths = append(p.thumbnails.selectedPaths, path)
+				p.thumbnails.selectedIDs = append(p.thumbnails.selectedIDs, id)
 			}
 		}
 		p.thumbnails.Refresh()
 	}
 
-	p.thumbnails.OnUnselected = func(id widget.GridWrapItemID) {
-		path := p.imagePaths[id]
-		if idx := slices.Index(p.thumbnails.selectedPaths, path); idx != -1 {
-			p.thumbnails.selectedPaths = slices.Delete(p.thumbnails.selectedPaths, idx, idx+1)
-			p.thumbnails.Refresh()
-		}
-	}
+	// p.thumbnails.OnUnselected = func(id widget.GridWrapItemID) {
+	// 	// This might not be necessary anymore if Tapped handles everything.
+	// 	if idx := slices.Index(p.thumbnails.selectedIDs, id); idx != -1 {
+	// 		p.thumbnails.selectedIDs = slices.Delete(p.thumbnails.selectedIDs, idx, idx+1)
+	// 		p.thumbnails.Refresh()
+	// 	}
+	// }
+	p.thumbnails.OnUnselected = nil
 
 	p.thumbnails.OnHighlighted = func(id widget.GridWrapItemID) {
 		if id >= len(p.imagePaths) {
@@ -242,33 +333,31 @@ func (p *PicsortUI) Build() {
 		}
 		path := p.imagePaths[id]
 		p.updatePreview(path)
+
 		if isExtendedSelection() {
-			p.thumbnails.Select(id)
+			if p.thumbnails.selectionAnchor == -1 {
+				p.thumbnails.selectionAnchor = id - 1
+			}
+			start, end := p.thumbnails.selectionAnchor, id
+			if start > end {
+				start, end = end, start
+			}
+
+			// Clear previous selection and select the new range
+			p.thumbnails.selectedIDs = []widget.GridWrapItemID{}
+			for i := start; i <= end; i++ {
+				p.thumbnails.selectedIDs = append(p.thumbnails.selectedIDs, i)
+			}
+			p.thumbnails.Refresh()
 		}
 	}
 
-	p.thumbnails.OnHovered = func(id widget.GridWrapItemID) {
-		// fmt.Println("highlighted:", id)
-		path := p.imagePaths[id]
-		p.updatePreview(path)
-		if isExtendedSelection() {
-			p.thumbnails.Select(id)
-		}
-	}
-
-	// OnHighlighted is on a custom branch of my fork, not yet on upstream.
-	// This is the alternative in case it doesn't get merged.
-	// p.thumbnails.OnNavigated = func(id widget.GridWrapItemID) {
+	// p.thumbnails.OnHovered = func(id widget.GridWrapItemID) {
+	// 	// fmt.Println("highlighted:", id)
 	// 	path := p.imagePaths[id]
 	// 	p.updatePreview(path)
 	// 	if isExtendedSelection() {
-	// 		if p.selectionAnchor == -1 {
-	// 			p.selectionAnchor = id
-	// 			p.thumbnails.Select(id)
-	// 			p.selectedPaths = append(p.selectedPaths, path)
-	// 			return
-	// 		}
-	// 		p.thumbnails.Select(id)
+	//
 	// 	}
 	// }
 
