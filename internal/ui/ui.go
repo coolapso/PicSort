@@ -84,7 +84,7 @@ func NewThumbnailGridWrap(length func() int, createItem func() fyne.CanvasObject
 	return grid
 }
 
-// Workaround for fyne main branch without OnNavigated
+// Workaround for fyne main branch without OnHighlighted
 // func (t *ThumbnailGridWrap) getScrolledID() widget.GridWrapItemID {
 // 	v := reflect.ValueOf(t).Elem().FieldByName("GridWrap")
 // 	if !v.IsValid() {
@@ -121,12 +121,11 @@ func (g *ThumbnailGridWrap) TypedKey(key *fyne.KeyEvent) {
 	}
 
 	g.GridWrap.TypedKey(&translatedKey)
+}
 
-	// afterID := g.getScrolledID()
-
-	// if g.OnNavigated != nil && beforeID != afterID && afterID != -1 {
-	// 	g.OnNavigated(afterID)
-	// }
+func (g *ThumbnailGridWrap) UnselectAll() {
+	g.selectedIDs = []widget.GridWrapItemID{}
+	g.Refresh()
 }
 
 func (p *PicsortUI) sortingBins() {
@@ -150,13 +149,6 @@ func (ic *ImageCheck) Tapped(_ *fyne.PointEvent) {
 		ic.OnChanged(ic.Checked)
 	}
 }
-
-// func (ic *ImageCheck) TypedKey(key *fyne.KeyEvent) {
-// 	switch key.Name {
-// 	case fyne.KeySpace:
-// 		ic.Tapped(&fyne.PointEvent{})
-// 	}
-// }
 
 func (ic *ImageCheck) CreateRenderer() fyne.WidgetRenderer {
 	r := &imageCheckRenderer{
