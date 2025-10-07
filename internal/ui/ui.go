@@ -5,7 +5,7 @@ import (
 	"image"
 	"slices"
 
-	// "image/color"
+	"image/color"
 	// "reflect"
 	"sync"
 
@@ -15,6 +15,7 @@ import (
 	"fyne.io/fyne/v2/data/binding"
 	"fyne.io/fyne/v2/driver/desktop"
 	"fyne.io/fyne/v2/layout"
+	"fyne.io/fyne/v2/theme"
 
 	// "fyne.io/fyne/v2/theme"
 
@@ -135,16 +136,19 @@ func (p *PicsortUI) NewThumbnailGrid() *ThumbnailGridWrap {
 			img := canvas.NewImageFromImage(nil)
 			img.FillMode = canvas.ImageFillContain
 			img.SetMinSize(fyne.NewSize(200, 200))
-			return container.NewStack(img)
+			bg := canvas.NewRectangle(color.Transparent)
+			return container.NewStack(bg, img)
 		},
 		func(i widget.GridWrapItemID, o fyne.CanvasObject) {
 			if i >= len(p.imagePaths) {
 				return
 			}
-			thumb := o.(*fyne.Container)
-			img := thumb.Objects[0].(*canvas.Image)
-
+			fmt.Println(i)
 			path := p.imagePaths[i]
+			stack := o.(*fyne.Container)
+			bg := stack.Objects[0].(*canvas.Rectangle)
+			img := stack.Objects[1].(*canvas.Image)
+
 			p.thumbMutex.Lock()
 			defer p.thumbMutex.Unlock()
 			if thumb, ok := p.thumbCache[path]; ok {
@@ -155,6 +159,13 @@ func (p *PicsortUI) NewThumbnailGrid() *ThumbnailGridWrap {
 				}
 			}
 			img.Refresh()
+
+			if slices.Contains(p.thumbnails.selectedPaths, path) {
+				bg.FillColor = theme.Color(theme.ColorNameSelection)
+			} else {
+				bg.FillColor = color.Transparent
+			}
+			bg.Refresh()
 		},
 	)
 }
@@ -191,10 +202,6 @@ func (p *PicsortUI) Build() {
 		}
 		path := p.imagePaths[id]
 
-		if slices.Contains(p.thumbnails.selectedPaths, p.imagePaths[id]) {
-			return
-		}
-
 		if isExtendedSelection() {
 			if p.thumbnails.selectionAnchor == -1 {
 				p.thumbnails.selectionAnchor = id
@@ -204,15 +211,29 @@ func (p *PicsortUI) Build() {
 				start, end = end, start
 			}
 
-			p.thumbnails.selectedPaths = []string{}
 			for i := start; i <= end; i++ {
-				p.thumbnails.selectedPaths = append(p.thumbnails.selectedPaths, p.imagePaths[i])
-				p.thumbnails.Select(i)
+				itemPath := p.imagePaths[i]
+				if !slices.Contains(p.thumbnails.selectedPaths, itemPath) {
+					p.thumbnails.selectedPaths = append(p.thumbnails.selectedPaths, itemPath)
+				}
 			}
-			return
+		} else {
+			p.thumbnails.selectionAnchor = id
+			if idx := slices.Index(p.thumbnails.selectedPaths, path); idx != -1 {
+				p.thumbnails.selectedPaths = slices.Delete(p.thumbnails.selectedPaths, idx, idx+1)
+			} else {
+				p.thumbnails.selectedPaths = append(p.thumbnails.selectedPaths, path)
+			}
 		}
-		p.thumbnails.selectionAnchor = id
-		p.thumbnails.selectedPaths = []string{path}
+		p.thumbnails.Refresh()
+	}
+
+	p.thumbnails.OnUnselected = func(id widget.GridWrapItemID) {
+		path := p.imagePaths[id]
+		if idx := slices.Index(p.thumbnails.selectedPaths, path); idx != -1 {
+			p.thumbnails.selectedPaths = slices.Delete(p.thumbnails.selectedPaths, idx, idx+1)
+			p.thumbnails.Refresh()
+		}
 	}
 
 	p.thumbnails.OnHighlighted = func(id widget.GridWrapItemID) {
