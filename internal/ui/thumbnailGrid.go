@@ -8,27 +8,25 @@ import (
 	"fyne.io/fyne/v2/widget"
 )
 
-// Core UI needs to provide way to get thumbnails and its paths, as well as a way to update the preview.
-type coreUI interface {
+// The DataProvider needs to provide way to get thumbnails and its paths, as well as a way to update the preview.
+type DataProvider interface {
 	GetThumbnail(path string) (image.Image, bool)
 	UpdatePreview(path string)
 	GetImagePaths() []string
 }
 
-// ThumbnailGridWrap is essentially an extension of the standard fyne.Gridwarp, 
-// And is a self contained grid responsible for presenting the thumbnails and navigation within the grid
 type ThumbnailGridWrap struct {
 	widget.GridWrap
 	selectionAnchor widget.GridWrapItemID
 	selectedIDs     []widget.GridWrapItemID
 
-	coreUI     coreUI
-	imagePaths []string
+	dataProvider DataProvider
+	imagePaths   []string
 }
 
-func NewThumbnailGridWrap(coreUI coreUI) *ThumbnailGridWrap {
+func NewThumbnailGridWrap(d DataProvider) *ThumbnailGridWrap {
 	grid := &ThumbnailGridWrap{
-		coreUI:          coreUI,
+		dataProvider:    d,
 		selectionAnchor: -1,
 		selectedIDs:     []widget.GridWrapItemID{},
 	}
@@ -83,7 +81,7 @@ func (g *ThumbnailGridWrap) onHighlighted(id widget.GridWrapItemID) {
 		return
 	}
 	path := g.imagePaths[id]
-	g.coreUI.UpdatePreview(path)
+	g.dataProvider.UpdatePreview(path)
 
 	if !isExtendedSelection() {
 		g.selectionAnchor = -1
@@ -112,7 +110,7 @@ func (g *ThumbnailGridWrap) unselectAll() {
 }
 
 func (g *ThumbnailGridWrap) Reload() {
-	g.imagePaths = g.coreUI.GetImagePaths()
+	g.imagePaths = g.dataProvider.GetImagePaths()
 	g.Refresh()
 }
 
@@ -131,7 +129,7 @@ func (g *ThumbnailGridWrap) updateItem(i widget.GridWrapItemID, o fyne.CanvasObj
 	path := g.imagePaths[i]
 	imgCheck := o.(*ImageCheck)
 
-	if thumb, ok := g.coreUI.GetThumbnail(path); ok {
+	if thumb, ok := g.dataProvider.GetThumbnail(path); ok {
 		imgCheck.Image = thumb
 	}
 
@@ -150,6 +148,6 @@ func (g *ThumbnailGridWrap) updateItem(i widget.GridWrapItemID, o fyne.CanvasObj
 	imgCheck.Refresh()
 }
 
-func NewThumbnailGrid(t coreUI) *ThumbnailGridWrap {
-	return NewThumbnailGridWrap(t)
+func NewThumbnailGrid(d DataProvider) *ThumbnailGridWrap {
+	return NewThumbnailGridWrap(d)
 }

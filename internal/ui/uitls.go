@@ -8,5 +8,3 @@ import (
 func isExtendedSelection() bool {
 	return fyne.CurrentApp().Driver().(desktop.Driver).CurrentKeyModifiers() == 1
 }
-
-
