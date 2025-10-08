@@ -3,10 +3,7 @@ package ui
 import (
 	"fmt"
 	"image"
-	"log"
-	"os"
 	"path/filepath"
-	// "sync"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/canvas"
@@ -77,27 +74,12 @@ func (p *PicsortUI) FocusThumbnails() {
 
 func (p *PicsortUI) GetWindow() fyne.Window { return p.win }
 
-func (p *PicsortUI) UpdatePreview(path string) {
-	go func() {
-		file, err := os.Open(path)
-		if err != nil {
-			log.Printf("could not open file for preview %s: %v", path, err)
-			return
-		}
-		defer file.Close()
-
-		img, _, err := image.Decode(file)
-		if err != nil {
-			log.Printf("could not decode image for preview %s: %v", path, err)
-			return
-		}
-
-		fyne.Do(func() {
-			p.preview.Image = img
-			p.preview.Refresh()
-			p.previewCard.SetSubTitle(filepath.Base(path))
-		})
-	}()
+func (p *PicsortUI) UpdatePreview(i image.Image, path string) {
+	fyne.Do(func() {
+		p.preview.Image = i
+		p.preview.Refresh()
+		p.previewCard.SetSubTitle(filepath.Base(path))
+	})
 }
 
 func (p *PicsortUI) sortingBins() {

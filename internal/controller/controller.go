@@ -15,7 +15,7 @@ import (
 	"github.com/nfnt/resize"
 )
 
-type UIUpdater interface {
+type CoreUI interface {
 	ShowProgressDialog(msg string)
 	SetProgress(progress float64, f string)
 	HideProgressDialog()
@@ -23,11 +23,11 @@ type UIUpdater interface {
 	ShowErrorDialog(err error)
 	FocusThumbnails()
 	GetWindow() fyne.Window
-	UpdatePreview(path string)
+	UpdatePreview(i image.Image, path string)
 }
 
 type Controller struct {
-	ui         UIUpdater
+	ui         CoreUI
 	db         *database.DB
 	thumbCache map[string]image.Image
 	thumbMutex *sync.Mutex
@@ -153,14 +153,29 @@ func (c *Controller) GetThumbnail(path string) (image.Image, bool) {
 }
 
 func (c *Controller) UpdatePreview(path string) {
-	c.ui.UpdatePreview(path)
+	go func() {
+		file, err := os.Open(path)
+		if err != nil {
+			log.Printf("could not open file for preview %s: %v", path, err)
+			return
+		}
+		defer file.Close()
+
+		img, _, err := image.Decode(file)
+		if err != nil {
+			log.Printf("could not decode image for preview %s: %v", path, err)
+			return
+		}
+
+		c.ui.UpdatePreview(img, path)
+	}()
 }
 
 func (c *Controller) ThumbMutex() *sync.Mutex {
 	return c.thumbMutex
 }
 
-func New(ui UIUpdater) *Controller {
+func New(ui CoreUI) *Controller {
 	return &Controller{
 		ui:         ui,
 		thumbCache: make(map[string]image.Image),
