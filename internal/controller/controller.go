@@ -19,11 +19,11 @@ type UIUpdater interface {
 	ShowProgressDialog(msg string)
 	SetProgress(progress float64, f string)
 	HideProgressDialog()
-	// RefreshThumbnails()
 	ReloadAll()
 	ShowErrorDialog(err error)
 	FocusThumbnails()
 	GetWindow() fyne.Window
+	UpdatePreview(path string)
 }
 
 type Controller struct {
@@ -152,7 +152,9 @@ func (c *Controller) GetThumbnail(path string) (image.Image, bool) {
 	return nil, false
 }
 
-func (c *Controller) UpdatePreview(path string) {}
+func (c *Controller) UpdatePreview(path string) {
+	c.ui.UpdatePreview(path)
+}
 
 func (c *Controller) ThumbMutex() *sync.Mutex {
 	return c.thumbMutex
