@@ -8,8 +8,8 @@ import (
 	"fyne.io/fyne/v2/widget"
 )
 
-// The DataProvider needs to provide way to get thumbnails and its paths, as well as a way to update the preview.
-type DataProvider interface {
+// The ThumbnailProvider needs to provide way to get thumbnails and its paths, as well as a way to update the preview.
+type ThumbnailProvider interface {
 	GetThumbnail(path string) (image.Image, bool)
 	UpdatePreview(path string)
 	GetImagePaths() []string
@@ -20,11 +20,11 @@ type ThumbnailGridWrap struct {
 	selectionAnchor widget.GridWrapItemID
 	selectedIDs     []widget.GridWrapItemID
 
-	dataProvider DataProvider
+	dataProvider ThumbnailProvider
 	imagePaths   []string
 }
 
-func NewThumbnailGridWrap(d DataProvider) *ThumbnailGridWrap {
+func NewThumbnailGridWrap(d ThumbnailProvider) *ThumbnailGridWrap {
 	grid := &ThumbnailGridWrap{
 		dataProvider:    d,
 		selectionAnchor: -1,
@@ -148,6 +148,6 @@ func (g *ThumbnailGridWrap) updateItem(i widget.GridWrapItemID, o fyne.CanvasObj
 	imgCheck.Refresh()
 }
 
-func NewThumbnailGrid(d DataProvider) *ThumbnailGridWrap {
+func NewThumbnailGrid(d ThumbnailProvider) *ThumbnailGridWrap {
 	return NewThumbnailGridWrap(d)
 }
