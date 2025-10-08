@@ -31,7 +31,7 @@ func (p *PicsortUI) topBar() *fyne.Container {
 			if uri == nil {
 				return
 			}
-			go p.loadThumbnails(uri.Path())
+			go p.controller.LoadDataset(uri.Path())
 		}, p.win)
 		folderDialog.Resize(fyne.NewSize(800, 600)) // Set the size here
 		folderDialog.Show()

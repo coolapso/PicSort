@@ -3,8 +3,10 @@ package ui
 import (
 	"fmt"
 	"image"
-	"slices"
-	"sync"
+	"log"
+	"os"
+	"path/filepath"
+	// "sync"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/canvas"
@@ -14,17 +16,16 @@ import (
 
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/widget"
-	"github.com/coolapso/picsort/internal/database"
+	"github.com/coolapso/picsort/internal/controller"
 )
 
 type PicsortUI struct {
-	app            fyne.App
-	win            fyne.Window
+	app        fyne.App
+	win        fyne.Window
+	controller *controller.Controller
+
 	bins           *fyne.Container
 	thumbnails     *ThumbnailGridWrap
-	db             *database.DB
-	thumbCache     map[string]image.Image
-	imagePaths     []string
 	progress       *widget.ProgressBar
 	progressValue  binding.Float
 	progressTitle  *widget.Label
@@ -32,21 +33,83 @@ type PicsortUI struct {
 	progressDialog dialog.Dialog
 	preview        *canvas.Image
 	previewCard    *widget.Card
-
-	wg         *sync.WaitGroup
-	jobs       chan string
-	thumbMutex *sync.Mutex
 }
 
 func New(a fyne.App, w fyne.Window) *PicsortUI {
-	return &PicsortUI{
+	p := &PicsortUI{
 		app:           a,
 		win:           w,
-		thumbCache:    make(map[string]image.Image),
 		progressValue: binding.NewFloat(),
 		progressTitle: widget.NewLabel(""),
 		progressFile:  widget.NewLabel(""),
 	}
+	p.controller = controller.New(p)
+	return p
+}
+
+func (p *PicsortUI) ShowProgressDialog(msg string) {
+	fyne.Do(func() {
+		p.progressTitle.SetText(msg)
+		p.progressDialog.Show()
+		p.progress.Show()
+		p.progressValue.Set(0)
+	})
+}
+
+func (p *PicsortUI) SetProgress(progress float64, f string) {
+	fyne.Do(func() {
+		p.progressFile.SetText(f)
+		p.progressValue.Set(progress)
+	})
+}
+
+func (p *PicsortUI) HideProgressDialog() {
+	fyne.Do(func() {
+		p.progressDialog.Hide()
+	})
+}
+
+func (p *PicsortUI) ShowErrorDialog(err error) {
+	fyne.Do(func() {
+		dialog.ShowError(err, p.win)
+	})
+}
+
+func (p *PicsortUI) ReloadAll() {
+	fyne.Do(func() {
+		p.thumbnails.Reload()
+	})
+}
+
+func (p *PicsortUI) FocusThumbnails() {
+	fyne.Do(func() {
+		p.win.Canvas().Focus(p.thumbnails)
+	})
+}
+
+func (p *PicsortUI) GetWindow() fyne.Window { return p.win }
+
+func (p *PicsortUI) UpdatePreview(path string) {
+	go func() {
+		file, err := os.Open(path)
+		if err != nil {
+			log.Printf("could not open file for preview %s: %v", path, err)
+			return
+		}
+		defer file.Close()
+
+		img, _, err := image.Decode(file)
+		if err != nil {
+			log.Printf("could not decode image for preview %s: %v", path, err)
+			return
+		}
+
+		fyne.Do(func() {
+			p.preview.Image = img
+			p.preview.Refresh()
+			p.previewCard.SetSubTitle(filepath.Base(path))
+		})
+	}()
 }
 
 func (p *PicsortUI) sortingBins() {
@@ -73,49 +136,7 @@ func (p *PicsortUI) Build() {
 
 	topBar := p.topBar()
 	bottomBar := p.bottomBar()
-	p.thumbnails = p.NewThumbnailGrid()
-	p.thumbnails.OnSelected = func(id widget.GridWrapItemID) {
-		if id >= len(p.imagePaths) {
-			return
-		}
-
-		if idx := slices.Index(p.thumbnails.selectedIDs, id); idx != -1 {
-			p.thumbnails.selectedIDs = slices.Delete(p.thumbnails.selectedIDs, idx, idx+1)
-		} else {
-			p.thumbnails.selectedIDs = append(p.thumbnails.selectedIDs, id)
-		}
-
-		p.thumbnails.Refresh()
-	}
-
-	p.thumbnails.OnUnselected = nil
-
-	p.thumbnails.OnHighlighted = func(id widget.GridWrapItemID) {
-		if id >= len(p.imagePaths) {
-			return
-		}
-		path := p.imagePaths[id]
-		p.updatePreview(path)
-
-		if !isExtendedSelection() {
-			p.thumbnails.selectionAnchor = -1
-		}
-
-		if isExtendedSelection() {
-			if p.thumbnails.selectionAnchor == -1 {
-				p.thumbnails.selectionAnchor = id - 1
-			}
-			start, end := p.thumbnails.selectionAnchor, id
-			if start > end {
-				start, end = end, start
-			}
-
-			for i := start; i <= end; i++ {
-				p.thumbnails.selectedIDs = append(p.thumbnails.selectedIDs, i)
-			}
-			p.thumbnails.Refresh()
-		}
-	}
+	p.thumbnails = NewThumbnailGrid(p.controller)
 
 	p.preview = canvas.NewImageFromImage(nil)
 	p.preview.FillMode = canvas.ImageFillContain
