@@ -3,6 +3,7 @@ package ui
 import (
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/dialog"
+	"fyne.io/fyne/v2/driver/desktop"
 	"github.com/coolapso/picsort/internal/data"
 	"github.com/coolapso/picsort/internal/database"
 	"github.com/nfnt/resize"
@@ -14,6 +15,10 @@ import (
 	"sync"
 	"sync/atomic"
 )
+
+func isExtendedSelection() bool {
+	return fyne.CurrentApp().Driver().(desktop.Driver).CurrentKeyModifiers() == 1
+}
 
 func (p *PicsortUI) setProgress(progress float64, f string) {
 	fyne.Do(func() {
