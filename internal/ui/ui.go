@@ -35,18 +35,6 @@ type PicsortUI struct {
 	previewCard    *widget.Card
 }
 
-func New(a fyne.App, w fyne.Window) *PicsortUI {
-	p := &PicsortUI{
-		app:           a,
-		win:           w,
-		progressValue: binding.NewFloat(),
-		progressTitle: widget.NewLabel(""),
-		progressFile:  widget.NewLabel(""),
-	}
-	p.controller = controller.New(p)
-	return p
-}
-
 func (p *PicsortUI) ShowProgressDialog(msg string) {
 	fyne.Do(func() {
 		p.progressTitle.SetText(msg)
@@ -149,4 +137,16 @@ func (p *PicsortUI) Build() {
 
 	p.win.SetContent(container.NewBorder(topBar, bottomBar, nil, nil, mainContent))
 	p.win.Resize(fyne.NewSize(1280, 720))
+}
+
+func New(a fyne.App, w fyne.Window) *PicsortUI {
+	p := &PicsortUI{
+		app:           a,
+		win:           w,
+		progressValue: binding.NewFloat(),
+		progressTitle: widget.NewLabel(""),
+		progressFile:  widget.NewLabel(""),
+	}
+	p.controller = controller.New(p)
+	return p
 }
