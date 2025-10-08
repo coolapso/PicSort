@@ -1,28 +1,44 @@
 package ui
 
 import (
+	"image"
 	"slices"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/widget"
 )
 
+type thumbGridDataProvider interface {
+	GetThumbnail(path string) (image.Image, bool)
+	UpdatePreview(path string)
+	GetImagePaths() []string
+}
+
 type ThumbnailGridWrap struct {
 	widget.GridWrap
 	selectionAnchor widget.GridWrapItemID
 	selectedIDs     []widget.GridWrapItemID
-	OnNavigated     func(widget.GridWrapItemID)
+
+	provider   thumbGridDataProvider
+	imagePaths []string
 }
 
-func NewThumbnailGridWrap(length func() int, createItem func() fyne.CanvasObject, updateItem func(widget.GridWrapItemID, fyne.CanvasObject)) *ThumbnailGridWrap {
+func NewThumbnailGridWrap(provider thumbGridDataProvider) *ThumbnailGridWrap {
 	grid := &ThumbnailGridWrap{
+		provider:        provider,
 		selectionAnchor: -1,
 		selectedIDs:     []widget.GridWrapItemID{},
 	}
-	grid.Length = length
-	grid.CreateItem = createItem
-	grid.UpdateItem = updateItem
+
+	grid.Length = grid.itemCount
+	grid.CreateItem = grid.createItem
+	grid.UpdateItem = grid.updateItem
+	grid.OnSelected = grid.onSelected
+	grid.OnHighlighted = grid.onHighlighted
+
 	grid.ExtendBaseWidget(grid)
+
+	grid.Reload()
 	return grid
 }
 
@@ -44,50 +60,92 @@ func (g *ThumbnailGridWrap) TypedKey(key *fyne.KeyEvent) {
 	g.GridWrap.TypedKey(&translatedKey)
 }
 
+func (g *ThumbnailGridWrap) onSelected(id widget.GridWrapItemID) {
+	if id >= len(g.imagePaths) {
+		return
+	}
+
+	if idx := slices.Index(g.selectedIDs, id); idx != -1 {
+		g.selectedIDs = slices.Delete(g.selectedIDs, idx, idx+1)
+	} else {
+		g.selectedIDs = append(g.selectedIDs, id)
+	}
+
+	g.Refresh()
+}
+
+func (g *ThumbnailGridWrap) onHighlighted(id widget.GridWrapItemID) {
+	if id >= len(g.imagePaths) {
+		return
+	}
+	path := g.imagePaths[id]
+	g.provider.UpdatePreview(path)
+
+	if !isExtendedSelection() {
+		g.selectionAnchor = -1
+	}
+
+	if isExtendedSelection() {
+		if g.selectionAnchor == -1 {
+			g.selectionAnchor = id - 1
+		}
+		start, end := g.selectionAnchor, id
+		if start > end {
+			start, end = end, start
+		}
+
+		for i := start; i <= end; i++ {
+			g.selectedIDs = append(g.selectedIDs, i)
+		}
+		g.Refresh()
+	}
+}
+
 func (g *ThumbnailGridWrap) unselectAll() {
 	g.selectedIDs = []widget.GridWrapItemID{}
 	g.selectionAnchor = -1
 	g.Refresh()
 }
 
-func (p *PicsortUI) NewThumbnailGrid() *ThumbnailGridWrap {
-	return NewThumbnailGridWrap(
-		func() int {
-			return len(p.imagePaths)
-		},
-		func() fyne.CanvasObject {
-			return NewImageCheck(nil, nil)
-		},
-		func(i widget.GridWrapItemID, o fyne.CanvasObject) {
-			if i >= len(p.imagePaths) {
-				return
-			}
-			path := p.imagePaths[i]
-			imgCheck := o.(*ImageCheck)
+func (g *ThumbnailGridWrap) Reload() {
+	g.imagePaths = g.provider.GetImagePaths()
+	g.Refresh()
+}
 
-			p.thumbMutex.Lock()
-			if thumb, ok := p.thumbCache[path]; ok {
-				imgCheck.Image = thumb
-			} else {
-				if t, found := p.db.GetThumbnail(path); found {
-					imgCheck.Image = t
-				}
-			}
-			p.thumbMutex.Unlock()
+func (g *ThumbnailGridWrap) itemCount() int {
+	return len(g.imagePaths)
+}
 
-			imgCheck.Checked = slices.Contains(p.thumbnails.selectedIDs, i)
-			imgCheck.OnChanged = func(checked bool) {
-				if checked {
-					if !slices.Contains(p.thumbnails.selectedIDs, i) {
-						p.thumbnails.selectedIDs = append(p.thumbnails.selectedIDs, i)
-					}
-				} else {
-					if idx := slices.Index(p.thumbnails.selectedIDs, i); idx != -1 {
-						p.thumbnails.selectedIDs = slices.Delete(p.thumbnails.selectedIDs, idx, idx+1)
-					}
-				}
+func (g *ThumbnailGridWrap) createItem() fyne.CanvasObject {
+	return NewImageCheck(nil, nil)
+}
+
+func (g *ThumbnailGridWrap) updateItem(i widget.GridWrapItemID, o fyne.CanvasObject) {
+	if i >= len(g.imagePaths) {
+		return
+	}
+	path := g.imagePaths[i]
+	imgCheck := o.(*ImageCheck)
+
+	if thumb, ok := g.provider.GetThumbnail(path); ok {
+		imgCheck.Image = thumb
+	}
+
+	imgCheck.Checked = slices.Contains(g.selectedIDs, i)
+	imgCheck.OnChanged = func(checked bool) {
+		if checked {
+			if !slices.Contains(g.selectedIDs, i) {
+				g.selectedIDs = append(g.selectedIDs, i)
 			}
-			imgCheck.Refresh()
-		},
-	)
+		} else {
+			if idx := slices.Index(g.selectedIDs, i); idx != -1 {
+				g.selectedIDs = slices.Delete(g.selectedIDs, idx, idx+1)
+			}
+		}
+	}
+	imgCheck.Refresh()
+}
+
+func NewThumbnailGrid(t thumbGridDataProvider) *ThumbnailGridWrap {
+	return NewThumbnailGridWrap(t)
 }
