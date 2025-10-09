@@ -23,6 +23,7 @@ type PicsortUI struct {
 
 	bins           *fyne.Container
 	thumbnails     *ThumbnailGridWrap
+	binGrids       []*ThumbnailGridWrap
 	progress       *widget.ProgressBar
 	progressValue  binding.Float
 	progressTitle  *widget.Label
@@ -72,6 +73,18 @@ func (p *PicsortUI) FocusThumbnails() {
 	})
 }
 
+func (p *PicsortUI) FocusBin(index int) {
+	fyne.Do(func() {
+		if index < 1 || index > len(p.bins.Objects) {
+			return
+		}
+		gridToFocus := p.binGrids[index-1]
+		if gridToFocus != nil {
+			p.win.Canvas().Focus(gridToFocus)
+		}
+	})
+}
+
 func (p *PicsortUI) GetWindow() fyne.Window { return p.win }
 
 func (p *PicsortUI) UpdatePreview(i image.Image, path string) {
@@ -84,8 +97,12 @@ func (p *PicsortUI) UpdatePreview(i image.Image, path string) {
 
 func (p *PicsortUI) sortingBins() {
 	p.bins = container.New(layout.NewGridLayout(5))
+	p.binGrids = make([]*ThumbnailGridWrap, 5)
 	for i := 1; i <= 5; i++ {
-		p.bins.Add(widget.NewCard(fmt.Sprintf("Bin %d", i), "", nil))
+		binGrid := NewThumbnailGridWrap(p.controller)
+		p.binGrids[i-1] = binGrid
+		card := widget.NewCard(fmt.Sprintf("Bin %d", i), "", NewThumbnailGrid(p.controller))
+		p.bins.Add(card)
 	}
 }
 
