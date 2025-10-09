@@ -2,14 +2,13 @@ package ui
 
 import (
 	_ "embed"
-	"fmt"
+	// "fmt"
 	"log"
 	"net/url"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/dialog"
-	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 )
@@ -49,21 +48,11 @@ func (p *PicsortUI) topBar() *fyne.Container {
 func (p *PicsortUI) bottomBar() fyne.Widget {
 	return widget.NewToolbar(
 		widget.NewToolbarAction(theme.ContentAddIcon(), func() {
-			if len(p.bins.Objects) <= 9 {
-				binCount := len(p.bins.Objects) + 1
-				p.bins.Add(widget.NewCard(fmt.Sprintf("Bin %d", binCount), "", nil))
-				p.bins.Layout = layout.NewGridLayout(binCount)
-				p.bins.Refresh()
-			}
+			p.AddBin()
 		}),
 
 		widget.NewToolbarAction(theme.ContentRemoveIcon(), func() {
-			if len(p.bins.Objects) > 1 {
-				binCount := len(p.bins.Objects) - 1
-				p.bins.Remove(p.bins.Objects[binCount])
-				p.bins.Layout = layout.NewGridLayout(binCount)
-				p.bins.Refresh()
-			}
+			p.RemoveBin()
 		}),
 
 		widget.NewToolbarSpacer(),
