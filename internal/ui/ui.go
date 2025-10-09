@@ -23,7 +23,7 @@ type PicsortUI struct {
 
 	bins           *fyne.Container
 	thumbnails     *ThumbnailGridWrap
-	binGrids       []*ThumbnailGridWrap
+	binGrids       map[int]*ThumbnailGridWrap
 	progress       *widget.ProgressBar
 	progressValue  binding.Float
 	progressTitle  *widget.Label
@@ -97,12 +97,35 @@ func (p *PicsortUI) UpdatePreview(i image.Image, path string) {
 
 func (p *PicsortUI) sortingBins() {
 	p.bins = container.New(layout.NewGridLayout(5))
-	p.binGrids = make([]*ThumbnailGridWrap, 5)
 	for i := 1; i <= 5; i++ {
-		binGrid := NewThumbnailGridWrap(p.controller)
-		p.binGrids[i-1] = binGrid
-		card := widget.NewCard(fmt.Sprintf("Bin %d", i), "", NewThumbnailGrid(p.controller))
+		// binGrid := NewThumbnailGridWrap(p.controller)
+		// p.binGrids[i] = binGrid
+		// card := widget.NewCard(fmt.Sprintf("Bin %d", i), "", NewThumbnailGrid(p.controller))
+		// p.bins.Add(card)
+		p.AddBin()
+	}
+}
+
+func (p *PicsortUI) AddBin() {
+	if len(p.bins.Objects) <= 9 {
+		binCount := len(p.bins.Objects) + 1
+		binGrid := NewThumbnailGrid(binCount, p.controller)
+		p.binGrids[binCount] = binGrid
+		card := widget.NewCard(fmt.Sprintf("Bin %d", binCount), "", nil)
 		p.bins.Add(card)
+		p.bins.Layout = layout.NewGridLayout(binCount)
+		p.bins.Refresh()
+	}
+}
+
+func (p *PicsortUI) RemoveBin() {
+	if len(p.bins.Objects) > 1 {
+		binCount := len(p.bins.Objects)
+		delete(p.binGrids, binCount)
+		binCount = len(p.bins.Objects) - 1
+		p.bins.Remove(p.bins.Objects[binCount])
+		p.bins.Layout = layout.NewGridLayout(binCount)
+		p.bins.Refresh()
 	}
 }
 
@@ -123,7 +146,7 @@ func (p *PicsortUI) Build() {
 
 	topBar := p.topBar()
 	bottomBar := p.bottomBar()
-	p.thumbnails = NewThumbnailGrid(p.controller)
+	p.thumbnails = NewThumbnailGrid(0, p.controller)
 
 	p.preview = canvas.NewImageFromImage(nil)
 	p.preview.FillMode = canvas.ImageFillContain
@@ -145,6 +168,7 @@ func New(a fyne.App, w fyne.Window) *PicsortUI {
 		progressValue: binding.NewFloat(),
 		progressTitle: widget.NewLabel(""),
 		progressFile:  widget.NewLabel(""),
+		binGrids:      make(map[int]*ThumbnailGridWrap),
 	}
 	p.controller = controller.New(p)
 	return p

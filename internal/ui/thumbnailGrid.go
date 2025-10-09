@@ -17,31 +17,12 @@ type ThumbnailProvider interface {
 
 type ThumbnailGridWrap struct {
 	widget.GridWrap
+	id              int
 	selectionAnchor widget.GridWrapItemID
 	selectedIDs     []widget.GridWrapItemID
 
 	dataProvider ThumbnailProvider
 	imagePaths   []string
-}
-
-func NewThumbnailGridWrap(d ThumbnailProvider) *ThumbnailGridWrap {
-	grid := &ThumbnailGridWrap{
-		dataProvider:    d,
-		selectionAnchor: -1,
-		selectedIDs:     []widget.GridWrapItemID{},
-	}
-
-	grid.Length = grid.itemCount
-	grid.CreateItem = grid.createItem
-	grid.UpdateItem = grid.updateItem
-	grid.OnSelected = grid.onSelected
-	grid.OnHighlighted = grid.onHighlighted
-	grid.OnUnselected = nil
-
-	grid.ExtendBaseWidget(grid)
-
-	grid.Reload()
-	return grid
 }
 
 func (g *ThumbnailGridWrap) TypedKey(key *fyne.KeyEvent) {
@@ -148,6 +129,22 @@ func (g *ThumbnailGridWrap) updateItem(i widget.GridWrapItemID, o fyne.CanvasObj
 	imgCheck.Refresh()
 }
 
-func NewThumbnailGrid(d ThumbnailProvider) *ThumbnailGridWrap {
-	return NewThumbnailGridWrap(d)
+func NewThumbnailGrid(id int, d ThumbnailProvider) *ThumbnailGridWrap {
+	grid := &ThumbnailGridWrap{
+		dataProvider:    d,
+		selectionAnchor: -1,
+		selectedIDs:     []widget.GridWrapItemID{},
+	}
+
+	grid.Length = grid.itemCount
+	grid.CreateItem = grid.createItem
+	grid.UpdateItem = grid.updateItem
+	grid.OnSelected = grid.onSelected
+	grid.OnHighlighted = grid.onHighlighted
+	grid.OnUnselected = nil
+
+	grid.ExtendBaseWidget(grid)
+
+	grid.Reload()
+	return grid
 }
