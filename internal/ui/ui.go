@@ -98,10 +98,6 @@ func (p *PicsortUI) UpdatePreview(i image.Image, path string) {
 func (p *PicsortUI) sortingBins() {
 	p.bins = container.New(layout.NewGridLayout(5))
 	for i := 1; i <= 5; i++ {
-		// binGrid := NewThumbnailGridWrap(p.controller)
-		// p.binGrids[i] = binGrid
-		// card := widget.NewCard(fmt.Sprintf("Bin %d", i), "", NewThumbnailGrid(p.controller))
-		// p.bins.Add(card)
 		p.AddBin()
 	}
 }
