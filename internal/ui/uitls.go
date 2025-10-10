@@ -5,6 +5,6 @@ import (
 	"fyne.io/fyne/v2/driver/desktop"
 )
 
-func isExtendedSelection() bool {
+func shiftPressed() bool {
 	return fyne.CurrentApp().Driver().(desktop.Driver).CurrentKeyModifiers() == 1
 }
