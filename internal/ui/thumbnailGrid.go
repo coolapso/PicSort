@@ -36,6 +36,10 @@ func (g *ThumbnailGridWrap) TypedKey(key *fyne.KeyEvent) {
 		translatedKey.Name = fyne.KeyUp
 	case fyne.KeyL:
 		translatedKey.Name = fyne.KeyRight
+	case fyne.KeyHome:
+		g.ScrollToTop()
+	case fyne.KeyEnd:
+		g.ScrollToBottom()
 	case fyne.KeyEscape:
 		g.unselectAll()
 	}
