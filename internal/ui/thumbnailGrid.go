@@ -3,6 +3,7 @@ package ui
 import (
 	"image"
 	"slices"
+	"time"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/widget"
@@ -20,6 +21,8 @@ type ThumbnailGridWrap struct {
 	id              int
 	selectionAnchor widget.GridWrapItemID
 	selectedIDs     []widget.GridWrapItemID
+	previousKey     fyne.KeyName
+	previousKeyAt   time.Time
 
 	dataProvider ThumbnailProvider
 	imagePaths   []string
@@ -36,15 +39,41 @@ func (g *ThumbnailGridWrap) TypedKey(key *fyne.KeyEvent) {
 		translatedKey.Name = fyne.KeyUp
 	case fyne.KeyL:
 		translatedKey.Name = fyne.KeyRight
+	case fyne.KeyG:
+		if g.isDoublePress(key) {
+			if shiftPressed() {
+				g.ScrollToBottom()
+			} else {
+				g.ScrollToTop()
+				g.Refresh()
+			}
+			return
+		}
+		return
 	case fyne.KeyHome:
 		g.ScrollToTop()
+		return
 	case fyne.KeyEnd:
 		g.ScrollToBottom()
+		return
 	case fyne.KeyEscape:
 		g.unselectAll()
+		return
 	}
 
 	g.GridWrap.TypedKey(&translatedKey)
+}
+
+func (g *ThumbnailGridWrap) isDoublePress(key *fyne.KeyEvent) bool {
+	if time.Since(g.previousKeyAt) < 500*time.Millisecond {
+		g.previousKey = ""
+		g.previousKeyAt = time.Time{}
+		return true
+	}
+
+	g.previousKey = key.Name
+	g.previousKeyAt = time.Now()
+	return false
 }
 
 func (g *ThumbnailGridWrap) onSelected(id widget.GridWrapItemID) {
@@ -68,11 +97,11 @@ func (g *ThumbnailGridWrap) onHighlighted(id widget.GridWrapItemID) {
 	path := g.imagePaths[id]
 	g.dataProvider.UpdatePreview(path)
 
-	if !isExtendedSelection() {
+	if !shiftPressed() {
 		g.selectionAnchor = -1
 	}
 
-	if isExtendedSelection() {
+	if shiftPressed() {
 		if g.selectionAnchor == -1 {
 			g.selectionAnchor = id - 1
 		}
