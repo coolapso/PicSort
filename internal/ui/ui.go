@@ -65,6 +65,19 @@ func (p *PicsortUI) ShowErrorDialog(err error) {
 func (p *PicsortUI) ReloadAll() {
 	fyne.Do(func() {
 		p.thumbnails.Reload()
+		for _, bin := range p.binGrids {
+			bin.Reload()
+		}
+	})
+}
+
+func (p *PicsortUI) ReloadBin(id int) {
+	fyne.Do(func() {
+		if id == 0 {
+			p.thumbnails.Reload()
+			return
+		}
+		p.binGrids[id].Reload()
 	})
 }
 
@@ -76,18 +89,6 @@ func (p *PicsortUI) FocusThumbnails(id int) {
 		}
 
 		p.win.Canvas().Focus(p.binGrids[id])
-	})
-}
-
-func (p *PicsortUI) FocusBin(index int) {
-	fyne.Do(func() {
-		if index < 1 || index > len(p.bins.Objects) {
-			return
-		}
-		gridToFocus := p.binGrids[index-1]
-		if gridToFocus != nil {
-			p.win.Canvas().Focus(gridToFocus)
-		}
 	})
 }
 

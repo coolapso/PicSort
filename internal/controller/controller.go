@@ -20,6 +20,7 @@ type CoreUI interface {
 	SetProgress(progress float64, f string)
 	HideProgressDialog()
 	ReloadAll()
+	ReloadBin(id int)
 	ShowErrorDialog(err error)
 	FocusThumbnails(id int)
 	GetWindow() fyne.Window
