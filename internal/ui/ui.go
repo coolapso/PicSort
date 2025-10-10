@@ -9,6 +9,7 @@ import (
 	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/data/binding"
+	"fyne.io/fyne/v2/driver/desktop"
 	"fyne.io/fyne/v2/layout"
 
 	"fyne.io/fyne/v2/dialog"
@@ -67,9 +68,14 @@ func (p *PicsortUI) ReloadAll() {
 	})
 }
 
-func (p *PicsortUI) FocusThumbnails() {
+func (p *PicsortUI) FocusThumbnails(id int) {
 	fyne.Do(func() {
-		p.win.Canvas().Focus(p.thumbnails)
+		if id == 0 {
+			p.win.Canvas().Focus(p.thumbnails)
+			return
+		}
+
+		p.win.Canvas().Focus(p.binGrids[id])
 	})
 }
 
@@ -107,7 +113,7 @@ func (p *PicsortUI) AddBin() {
 		binCount := len(p.bins.Objects) + 1
 		binGrid := NewThumbnailGrid(binCount, p.controller)
 		p.binGrids[binCount] = binGrid
-		card := widget.NewCard(fmt.Sprintf("Bin %d", binCount), "", nil)
+		card := widget.NewCard(fmt.Sprintf("Bin %d", binCount), "", binGrid)
 		p.bins.Add(card)
 		p.bins.Layout = layout.NewGridLayout(binCount)
 		p.bins.Refresh()
@@ -125,7 +131,32 @@ func (p *PicsortUI) RemoveBin() {
 	}
 }
 
+func (p *PicsortUI) globalKeyBinds() {
+	ctrlT := &desktop.CustomShortcut{KeyName: fyne.KeyT, Modifier: fyne.KeyModifierControl}
+	p.win.Canvas().AddShortcut(ctrlT, func(shortcut fyne.Shortcut) {
+		p.FocusThumbnails(0)
+	})
+
+	binKeys := []fyne.KeyName{
+		fyne.Key0, fyne.Key1, fyne.Key2, fyne.Key3, fyne.Key4, fyne.Key5,
+		fyne.Key6, fyne.Key7, fyne.Key8, fyne.Key9,
+	}
+
+	for i, key := range binKeys {
+		shortcut := &desktop.CustomShortcut{KeyName: key, Modifier: fyne.KeyModifierControl}
+		p.win.Canvas().AddShortcut(shortcut, func(s fyne.Shortcut) {
+			p.FocusThumbnails(i)
+		})
+	}
+
+	ctrlO := &desktop.CustomShortcut{KeyName: fyne.KeyO, Modifier: fyne.KeyModifierControl}
+	p.win.Canvas().AddShortcut(ctrlO, func(s fyne.Shortcut) {
+		p.openFolderDialog()
+	})
+}
+
 func (p *PicsortUI) Build() {
+	p.globalKeyBinds()
 	p.sortingBins()
 	p.progress = widget.NewProgressBarWithData(p.progressValue)
 	progressContent := container.NewVBox(

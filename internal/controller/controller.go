@@ -21,7 +21,7 @@ type CoreUI interface {
 	HideProgressDialog()
 	ReloadAll()
 	ShowErrorDialog(err error)
-	FocusThumbnails()
+	FocusThumbnails(id int)
 	GetWindow() fyne.Window
 	UpdatePreview(i image.Image, path string)
 }
@@ -79,7 +79,7 @@ func (c *Controller) LoadDataset(path string) {
 
 	c.ui.ReloadAll()
 	c.ui.HideProgressDialog()
-	c.ui.FocusThumbnails()
+	c.ui.FocusThumbnails(0)
 }
 
 func (c *Controller) dbinit(path string) error {

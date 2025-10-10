@@ -21,28 +21,28 @@ func newURLToolbarAction(a fyne.App, icon fyne.Resource, urlStr string) widget.T
 }
 
 func (p *PicsortUI) topBar() *fyne.Container {
-	openDataSetButton := widget.NewButton("Open dataset", func() {
-		folderDialog := dialog.NewFolderOpen(func(uri fyne.ListableURI, err error) {
-			if err != nil {
-				log.Println("Error opening folder dialog:", err)
-				return
-			}
-			if uri == nil {
-				return
-			}
-			go p.controller.LoadDataset(uri.Path())
-		}, p.win)
-		folderDialog.Resize(fyne.NewSize(800, 600)) // Set the size here
-		folderDialog.Show()
-	})
-
+	openDataSetButton := widget.NewButton("Open dataset", p.openFolderDialog)
 	exportButton := widget.NewButton("Export", func() {})
-
 	helpButton := widget.NewButtonWithIcon("", theme.HelpIcon(), func() {})
 
 	return container.NewBorder(nil, nil, nil, helpButton,
 		container.NewHBox(openDataSetButton, exportButton),
 	)
+}
+
+func (p *PicsortUI) openFolderDialog() {
+	folderDialog := dialog.NewFolderOpen(func(uri fyne.ListableURI, err error) {
+		if err != nil {
+			log.Println("Error opening folder dialog:", err)
+			return
+		}
+		if uri == nil {
+			return
+		}
+		go p.controller.LoadDataset(uri.Path())
+	}, p.win)
+	folderDialog.Resize(fyne.NewSize(800, 600)) // Set the size here
+	folderDialog.Show()
 }
 
 func (p *PicsortUI) bottomBar() fyne.Widget {
