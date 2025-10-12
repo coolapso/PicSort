@@ -9,44 +9,44 @@ import (
 	"fyne.io/fyne/v2/widget"
 )
 
-type ImageCheck struct {
+type Thumbnail struct {
 	widget.BaseWidget
 	Image     image.Image
 	Checked   bool
 	OnChanged func(bool)
 }
 
-func (ic *ImageCheck) CreateRenderer() fyne.WidgetRenderer {
-	r := &imageCheckRenderer{
-		imageCheck: ic,
-		thumb:      canvas.NewImageFromImage(ic.Image),
-		checkIcon:  canvas.NewImageFromResource(theme.CheckButtonIcon()),
+func (ic *Thumbnail) CreateRenderer() fyne.WidgetRenderer {
+	r := &thumbnailRenderer{
+		thumbnail: ic,
+		thumb:     canvas.NewImageFromImage(ic.Image),
+		checkIcon: canvas.NewImageFromResource(theme.CheckButtonIcon()),
 	}
 	r.thumb.FillMode = canvas.ImageFillContain
 	r.checkIcon.Hide()
 	return r
 }
 
-type imageCheckRenderer struct {
-	imageCheck *ImageCheck
-	thumb      *canvas.Image
-	checkIcon  *canvas.Image
+type thumbnailRenderer struct {
+	thumbnail *Thumbnail
+	thumb     *canvas.Image
+	checkIcon *canvas.Image
 }
 
-func (r *imageCheckRenderer) Layout(size fyne.Size) {
+func (r *thumbnailRenderer) Layout(size fyne.Size) {
 	r.thumb.Resize(size)
 	r.checkIcon.Resize(fyne.NewSize(theme.IconInlineSize(), theme.IconInlineSize()))
 	r.checkIcon.Move(fyne.NewPos(size.Width-theme.IconInlineSize()-theme.Padding(), theme.Padding()))
 }
 
-func (r *imageCheckRenderer) MinSize() fyne.Size {
+func (r *thumbnailRenderer) MinSize() fyne.Size {
 	return fyne.NewSize(200, 200)
 }
 
-func (r *imageCheckRenderer) Refresh() {
-	r.thumb.Image = r.imageCheck.Image
+func (r *thumbnailRenderer) Refresh() {
+	r.thumb.Image = r.thumbnail.Image
 	r.thumb.Refresh()
-	if r.imageCheck.Checked {
+	if r.thumbnail.Checked {
 		r.checkIcon.Resource = theme.CheckButtonCheckedIcon()
 		r.checkIcon.Show()
 	} else {
@@ -54,17 +54,17 @@ func (r *imageCheckRenderer) Refresh() {
 		r.checkIcon.Hide()
 	}
 	r.checkIcon.Refresh()
-	canvas.Refresh(r.imageCheck)
+	canvas.Refresh(r.thumbnail)
 }
 
-func (r *imageCheckRenderer) Objects() []fyne.CanvasObject {
+func (r *thumbnailRenderer) Objects() []fyne.CanvasObject {
 	return []fyne.CanvasObject{r.thumb, r.checkIcon}
 }
 
-func (r *imageCheckRenderer) Destroy() {}
+func (r *thumbnailRenderer) Destroy() {}
 
-func NewImageCheck(img image.Image, onChanged func(bool)) *ImageCheck {
-	ic := &ImageCheck{
+func NewThumbnail(img image.Image, onChanged func(bool)) *Thumbnail {
+	ic := &Thumbnail{
 		Image:     img,
 		OnChanged: onChanged,
 	}
