@@ -2,8 +2,8 @@ fyne.io/systray v1.11.1-0.20250603113521-ca66a66d8b58 h1:eA5/u2XRd8OUkoMqEv3IBlF
 fyne.io/systray v1.11.1-0.20250603113521-ca66a66d8b58/go.mod h1:RVwqP9nYMo7h5zViCBHri2FgjXF7H2cub7MAq4NSoLs=
 github.com/BurntSushi/toml v1.5.0 h1:W5quZX/G/csjUnuI8SUYlsHs9M38FC7znL0lIO+DvMg=
 github.com/BurntSushi/toml v1.5.0/go.mod h1:ukJfTF/6rtPPRCnwkur4qwRxa8vTRFBF0uk2lLoLwho=
-github.com/coolapso/fyne/v2 v2.0.0-20251007071321-e5f13d58f0aa h1:j6JiHCtOfhcQKUE2GHmVyT9ClShtESpwgb2WHWz02Fk=
-github.com/coolapso/fyne/v2 v2.0.0-20251007071321-e5f13d58f0aa/go.mod h1:xClVlrhxl7D+LT+BWYmcrW4Nf+dJTvkhnPgji7spAwE=
+github.com/coolapso/fyne/v2 v2.0.0-20251011160756-3a725b9c85fa h1:rn10+/OoV7Ge1bJpTdxnTfxBqK6VFQ8W7uGHYJ1uNfw=
+github.com/coolapso/fyne/v2 v2.0.0-20251011160756-3a725b9c85fa/go.mod h1:xClVlrhxl7D+LT+BWYmcrW4Nf+dJTvkhnPgji7spAwE=
 github.com/creack/pty v1.1.9/go.mod h1:oKZEueFk5CKHvIhNR5MUki03XCEU+Q6VDXinZuGJ33E=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
