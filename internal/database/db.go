@@ -46,13 +46,17 @@ func (db *DB) migrate() error {
 			key TEXT PRIMARY KEY,
 			value TEXT
 		);
+
 		CREATE TABLE IF NOT EXISTS thumbnails (
 			path TEXT PRIMARY KEY,
 			data BLOB
 		);
-		CREATE TABLE IF NOT EXISTS images (
-			path TEXT PRIMERY KEY,
-			bin INTEGER
+
+		CREATE TABLE IF NOT EXISTS image_bins (
+			image_path TEXT NOT NULL,
+			bin_id INTEGER NOT NULL,
+			PRIMARY KEY (image_path, bin_id),
+			FOREIGN KEY (image_path) REFERENCES thumbnails(path) ON DELETE CASCADE
 		);
 	`)
 	if err != nil {
@@ -94,31 +98,25 @@ func (db *DB) GetThumbnail(path string) (image.Image, bool) {
 	return img, true
 }
 
-func (db *DB) SetThumbnail(path string, img image.Image) {
-	var buf bytes.Buffer
-	if err := jpeg.Encode(&buf, img, nil); err != nil {
-		log.Printf("error encoding thumbnail for %s: %v", path, err)
-		return
-	}
-
-	_, err := db.conn.Exec("INSERT OR REPLACE INTO thumbnails (path, data) VALUES (?, ?)", path, buf.Bytes())
-	if err != nil {
-		log.Printf("error setting thumbnail in DB for %s: %v", path, err)
-	}
-}
-
 func (db *DB) SetThumbnailsBatch(thumbnails map[string]image.Image) error {
 	tx, err := db.conn.Begin()
 	if err != nil {
 		return err
 	}
 
-	stmt, err := tx.Prepare("INSERT OR REPLACE INTO thumbnails (path, data) VALUES (?, ?)")
+	thumbStmt, err := tx.Prepare("INSERT OR REPLACE INTO thumbnails (path, data) VALUES (?, ?)")
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
-	defer stmt.Close()
+	defer thumbStmt.Close()
+
+	binStmt, err := tx.Prepare("INSERT OR IGNORE INTO image_bins (image_path, bin_id) VALUES (?, 0)")
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	defer binStmt.Close()
 
 	for path, img := range thumbnails {
 		var buf bytes.Buffer
@@ -127,12 +125,44 @@ func (db *DB) SetThumbnailsBatch(thumbnails map[string]image.Image) error {
 			continue
 		}
 
-		_, err := stmt.Exec(path, buf.Bytes())
-		if err != nil {
+		if _, err := thumbStmt.Exec(path, buf.Bytes()); err != nil {
 			log.Printf("Error executing batch statement for %s: %v", path, err)
+			continue
+		}
+
+		if _, err := binStmt.Exec(path); err != nil {
+			log.Printf("Error executing batch statement for bin %s: %v", path, err)
 			continue
 		}
 	}
 
 	return tx.Commit()
+}
+
+func (db *DB) GetImagePaths(binID int) ([]string, error) {
+	var rows *sql.Rows
+	var err error
+	if binID == -1 {
+		rows, err = db.conn.Query("SELECT path FROM thumbnails")
+	} else {
+		rows, err = db.conn.Query("SELECT image_path FROM image_bins WHERE bin_id = ?", binID)
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var paths []string
+	for rows.Next() {
+		var path string
+		if err := rows.Scan(&path); err != nil {
+			return nil, err
+		}
+		paths = append(paths, path)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return paths, nil
 }
