@@ -168,13 +168,57 @@ func (db *DB) GetImagePaths(binID int) ([]string, error) {
 }
 
 // MoveImage updates the bin for a given image.
-func (db *DB) UpdateImage(path, destID int) error {
+func (db *DB) UpdateImage(path string, destID int) error {
 	_, err := db.conn.Exec("UPDATE image_bins SET bin_id = ? WHERE image_path  = ?", destID, path)
 	return err
 }
 
 // CopyImageToBin adds an image to a new bin without removing it from existing ones.
-func (db *DB) AddImageToBin(path, destID int) error {
+func (db *DB) AddImageToBin(path string, destID int) error {
 	_, err := db.conn.Exec("INSERT OR IGNORE INTO image_bins (image_path, bin_id) VALUES (?, ?)", path, destID)
 	return err
+}
+
+func (db *DB) UpdateImages(paths []string, destID int) error {
+	tx, err := db.conn.Begin()
+	if err != nil {
+		return err
+	}
+
+	stmt, err := tx.Prepare("UPDATE image_bins SET bin_id = ? WHERE image_path = ?")
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	defer stmt.Close()
+
+	for _, path := range paths {
+		if _, err := stmt.Exec(destID, path); err != nil {
+			log.Printf("Error executing batch update for %s: %v", path, err)
+		}
+	}
+
+	return tx.Commit()
+}
+
+func (db *DB) AddImagesToBin(paths []string, destID int) error {
+	tx, err := db.conn.Begin()
+	if err != nil {
+		return err
+	}
+
+	stmt, err := tx.Prepare("INSERT OR IGNORE INTO image_bins (image_path, bin_id) VALUES (?, ?)")
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	defer stmt.Close()
+
+	for _, path := range paths {
+		if _, err := stmt.Exec(path, destID); err != nil {
+			log.Printf("Error executing batch insert for %s: %v", path, err)
+		}
+	}
+
+	return tx.Commit()
 }

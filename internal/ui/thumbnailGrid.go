@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"fmt"
 	"image"
 	"slices"
 	"time"
@@ -14,6 +15,8 @@ type ThumbnailProvider interface {
 	GetThumbnail(path string) (image.Image, bool)
 	UpdatePreview(path string)
 	GetImagePaths(bindID int) []string
+	MoveImage(path string, sourceID, destID int)
+	MoveImages(paths []string, sourceID, destID int)
 }
 
 type ThumbnailGridWrap struct {
@@ -23,6 +26,7 @@ type ThumbnailGridWrap struct {
 	selectedIDs     []widget.GridWrapItemID
 	previousKey     fyne.KeyName
 	previousKeyAt   time.Time
+	currentPath     string
 
 	dataProvider ThumbnailProvider
 	imagePaths   []string
@@ -58,6 +62,36 @@ func (g *ThumbnailGridWrap) TypedKey(key *fyne.KeyEvent) {
 		return
 	case fyne.KeyEscape:
 		g.unselectAll()
+		return
+	case fyne.Key1:
+		g.MoveImages(1)
+		return
+	case fyne.Key2:
+		g.MoveImages(2)
+		return
+	case fyne.Key3:
+		g.MoveImages(3)
+		return
+	case fyne.Key4:
+		g.MoveImages(4)
+		return
+	case fyne.Key5:
+		g.MoveImages(5)
+		return
+	case fyne.Key6:
+		g.MoveImages(6)
+		return
+	case fyne.Key7:
+		g.MoveImages(7)
+		return
+	case fyne.Key8:
+		g.MoveImages(8)
+		return
+	case fyne.Key9:
+		g.MoveImages(9)
+		return
+	case fyne.Key0:
+		g.MoveImages(0)
 		return
 	}
 
@@ -96,6 +130,7 @@ func (g *ThumbnailGridWrap) onHighlighted(id widget.GridWrapItemID) {
 	}
 	path := g.imagePaths[id]
 	g.dataProvider.UpdatePreview(path)
+	g.currentPath = path
 
 	if !shiftPressed() {
 		g.selectionAnchor = -1
@@ -160,6 +195,22 @@ func (g *ThumbnailGridWrap) updateItem(i widget.GridWrapItemID, o fyne.CanvasObj
 		}
 	}
 	imgCheck.Refresh()
+}
+
+func (g *ThumbnailGridWrap) MoveImages(destID int) {
+	// if len(g.selectedIDs) > 0 {
+	// 		g.dataProvider.MoveImages(g.imagePaths, g.id, destID)
+	// 	}
+	// 	return
+	// }
+	if len(g.selectedIDs) == 0 {
+		if g.currentPath == "" {
+			return
+		}
+		fmt.Println(g.currentPath)
+		g.dataProvider.MoveImage(g.currentPath, g.id, destID)
+		return
+	}
 }
 
 func NewThumbnailGrid(id int, d ThumbnailProvider) *ThumbnailGridWrap {
