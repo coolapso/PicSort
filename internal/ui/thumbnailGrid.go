@@ -133,7 +133,7 @@ func (g *ThumbnailGridWrap) itemCount() int {
 }
 
 func (g *ThumbnailGridWrap) createItem() fyne.CanvasObject {
-	return NewImageCheck(nil, nil)
+	return NewThumbnail(nil, nil)
 }
 
 func (g *ThumbnailGridWrap) updateItem(i widget.GridWrapItemID, o fyne.CanvasObject) {
@@ -141,7 +141,7 @@ func (g *ThumbnailGridWrap) updateItem(i widget.GridWrapItemID, o fyne.CanvasObj
 		return
 	}
 	path := g.imagePaths[i]
-	imgCheck := o.(*ImageCheck)
+	imgCheck := o.(*Thumbnail)
 
 	if thumb, ok := g.dataProvider.GetThumbnail(path); ok {
 		imgCheck.Image = thumb
