@@ -13,7 +13,7 @@ import (
 type ThumbnailProvider interface {
 	GetThumbnail(path string) (image.Image, bool)
 	UpdatePreview(path string)
-	GetImagePaths() []string
+	GetImagePaths(bindID int) []string
 }
 
 type ThumbnailGridWrap struct {
@@ -124,7 +124,7 @@ func (g *ThumbnailGridWrap) unselectAll() {
 }
 
 func (g *ThumbnailGridWrap) Reload() {
-	g.imagePaths = g.dataProvider.GetImagePaths()
+	g.imagePaths = g.dataProvider.GetImagePaths(g.id)
 	g.Refresh()
 }
 
@@ -169,6 +169,7 @@ func NewThumbnailGrid(id int, d ThumbnailProvider) *ThumbnailGridWrap {
 		selectedIDs:     []widget.GridWrapItemID{},
 	}
 
+	grid.id = id
 	grid.Length = grid.itemCount
 	grid.CreateItem = grid.createItem
 	grid.UpdateItem = grid.updateItem

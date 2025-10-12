@@ -58,7 +58,11 @@ func (p *PicsortUI) HideProgressDialog() {
 
 func (p *PicsortUI) ShowErrorDialog(err error) {
 	fyne.Do(func() {
-		dialog.ShowError(err, p.win)
+		d := dialog.NewError(err, p.win)
+		d.SetOnClosed(func() {
+			p.progressDialog.Hide()
+		})
+		d.Show()
 	})
 }
 
@@ -158,7 +162,6 @@ func (p *PicsortUI) globalKeyBinds() {
 
 func (p *PicsortUI) Build() {
 	p.globalKeyBinds()
-	p.sortingBins()
 	p.progress = widget.NewProgressBarWithData(p.progressValue)
 	progressContent := container.NewVBox(
 		p.progressTitle,
@@ -175,6 +178,7 @@ func (p *PicsortUI) Build() {
 	topBar := p.topBar()
 	bottomBar := p.bottomBar()
 	p.thumbnails = NewThumbnailGrid(0, p.controller)
+	p.sortingBins()
 
 	p.preview = canvas.NewImageFromImage(nil)
 	p.preview.FillMode = canvas.ImageFillContain

@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"fmt"
 	"image"
 	"log"
 	"os"
@@ -32,7 +33,7 @@ type Controller struct {
 	db         *database.DB
 	thumbCache map[string]image.Image
 	thumbMutex *sync.Mutex
-	imagePaths []string
+	// imagePaths []string
 
 	wg   *sync.WaitGroup
 	jobs chan string
@@ -51,14 +52,14 @@ func (c *Controller) LoadDataset(path string) {
 		return
 	}
 
-	c.imagePaths = d.Images
+	imagePaths := d.Images
 	c.ui.ReloadAll()
 
-	total := float64(len(c.imagePaths))
+	total := float64(len(imagePaths))
 	var processedCount int64
 
-	c.jobs = make(chan string, len(c.imagePaths))
-	for _, p := range c.imagePaths {
+	c.jobs = make(chan string, len(imagePaths))
+	for _, p := range imagePaths {
 		c.jobs <- p
 	}
 	close(c.jobs)
@@ -132,8 +133,18 @@ func (c *Controller) cacheThumbnails(total float64, processedCount *int64) {
 	}
 }
 
-func (c *Controller) GetImagePaths() []string {
-	return c.imagePaths
+func (c *Controller) GetImagePaths(binID int) []string {
+	if c.db == nil {
+		return nil
+	}
+	paths, err := c.db.GetImagePaths(binID)
+	if err != nil {
+		message := fmt.Errorf("failed to get image paths: %v", err)
+		log.Println(message)
+		c.ui.ShowErrorDialog(message)
+		return nil
+	}
+	return paths
 }
 
 func (c *Controller) GetThumbnail(path string) (image.Image, bool) {
