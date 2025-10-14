@@ -111,7 +111,7 @@ func (g *ThumbnailGridWrap) isDoublePress(key *fyne.KeyEvent) bool {
 }
 
 func (g *ThumbnailGridWrap) onSelected(id widget.GridWrapItemID) {
-	if id >= len(g.imagePaths) {
+	if id < 0 || id >= len(g.imagePaths) {
 		return
 	}
 
@@ -125,12 +125,13 @@ func (g *ThumbnailGridWrap) onSelected(id widget.GridWrapItemID) {
 }
 
 func (g *ThumbnailGridWrap) onHighlighted(id widget.GridWrapItemID) {
-	if id >= len(g.imagePaths) {
+	if id < 0 || id >= len(g.imagePaths) {
 		return
 	}
 	path := g.imagePaths[id]
 	g.dataProvider.UpdatePreview(path)
 	g.currentPath = path
+	fmt.Println(id)
 
 	if !shiftPressed() {
 		g.selectionAnchor = -1
@@ -172,7 +173,7 @@ func (g *ThumbnailGridWrap) createItem() fyne.CanvasObject {
 }
 
 func (g *ThumbnailGridWrap) updateItem(i widget.GridWrapItemID, o fyne.CanvasObject) {
-	if i >= len(g.imagePaths) {
+	if i < 0 || i >= len(g.imagePaths) {
 		return
 	}
 	path := g.imagePaths[i]
@@ -203,10 +204,7 @@ func (g *ThumbnailGridWrap) MoveImages(destID int) {
 	// 	}
 	// 	return
 	// }
-	if len(g.selectedIDs) == 0 {
-		if g.currentPath == "" {
-			return
-		}
+	if len(g.selectedIDs) == 0 || g.currentPath == "" {
 		fmt.Println(g.currentPath)
 		g.dataProvider.MoveImage(g.currentPath, g.id, destID)
 		return

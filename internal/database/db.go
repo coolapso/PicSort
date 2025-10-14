@@ -168,8 +168,8 @@ func (db *DB) GetImagePaths(binID int) ([]string, error) {
 }
 
 // MoveImage updates the bin for a given image.
-func (db *DB) UpdateImage(path string, destID int) error {
-	_, err := db.conn.Exec("UPDATE image_bins SET bin_id = ? WHERE image_path  = ?", destID, path)
+func (db *DB) UpdateImage(path string, sourceID, destID int) error {
+	_, err := db.conn.Exec("UPDATE image_bins SET bin_id = ? WHERE image_path  = ? AND bin_id = ?", destID, path, sourceID)
 	return err
 }
 
@@ -179,13 +179,13 @@ func (db *DB) AddImageToBin(path string, destID int) error {
 	return err
 }
 
-func (db *DB) UpdateImages(paths []string, destID int) error {
+func (db *DB) UpdateImages(paths []string, sourceID, destID int) error {
 	tx, err := db.conn.Begin()
 	if err != nil {
 		return err
 	}
 
-	stmt, err := tx.Prepare("UPDATE image_bins SET bin_id = ? WHERE image_path = ?")
+	stmt, err := tx.Prepare("UPDATE image_bins SET bin_id = ? WHERE image_path = ? AND bin_id = ?")
 	if err != nil {
 		tx.Rollback()
 		return err
