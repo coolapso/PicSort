@@ -23,7 +23,6 @@ type PicsortUI struct {
 	controller *controller.Controller
 
 	bins           *fyne.Container
-	thumbnails     *ThumbnailGridWrap
 	binGrids       map[int]*ThumbnailGridWrap
 	progress       *widget.ProgressBar
 	progressValue  binding.Float
@@ -68,7 +67,6 @@ func (p *PicsortUI) ShowErrorDialog(err error) {
 
 func (p *PicsortUI) ReloadAll() {
 	fyne.Do(func() {
-		p.thumbnails.Reload()
 		for _, bin := range p.binGrids {
 			bin.Reload()
 		}
@@ -77,21 +75,12 @@ func (p *PicsortUI) ReloadAll() {
 
 func (p *PicsortUI) ReloadBin(id int) {
 	fyne.Do(func() {
-		if id == 0 {
-			p.thumbnails.Reload()
-			return
-		}
 		p.binGrids[id].Reload()
 	})
 }
 
 func (p *PicsortUI) FocusThumbnails(id int) {
 	fyne.Do(func() {
-		if id == 0 {
-			p.win.Canvas().Focus(p.thumbnails)
-			return
-		}
-
 		p.win.Canvas().Focus(p.binGrids[id])
 	})
 }
@@ -177,13 +166,13 @@ func (p *PicsortUI) Build() {
 
 	topBar := p.topBar()
 	bottomBar := p.bottomBar()
-	p.thumbnails = NewThumbnailGrid(0, p.controller)
+	p.binGrids[0] = NewThumbnailGrid(0, p.controller)
 	p.sortingBins()
 
 	p.preview = canvas.NewImageFromImage(nil)
 	p.preview.FillMode = canvas.ImageFillContain
 	p.previewCard = widget.NewCard("Preview", "Selected image", p.preview)
-	topSplit := container.NewHSplit(p.thumbnails, p.previewCard)
+	topSplit := container.NewHSplit(p.binGrids[0], p.previewCard)
 	topSplit.SetOffset(0.3)
 
 	mainContent := container.NewVSplit(topSplit, p.bins)

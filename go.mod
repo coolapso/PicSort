@@ -42,4 +42,5 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-replace fyne.io/fyne/v2 => github.com/coolapso/fyne/v2 v2.0.0-20251011160756-3a725b9c85fa
+// replace fyne.io/fyne/v2 => github.com/coolapso/fyne/v2 v2.0.0-20251011160756-3a725b9c85fa
+replace fyne.io/fyne/v2 => /home/coolapso/dev/fyne

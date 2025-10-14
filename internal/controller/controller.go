@@ -188,7 +188,11 @@ func (c *Controller) ThumbMutex() *sync.Mutex {
 }
 
 func (c *Controller) MoveImage(path string, sourceID, destID int) {
-	err := c.db.UpdateImage(path, destID)
+	if sourceID == destID {
+		return
+	}
+
+	err := c.db.UpdateImage(path, sourceID, destID)
 	if err != nil {
 		c.ui.ShowErrorDialog(err)
 		return
@@ -198,7 +202,7 @@ func (c *Controller) MoveImage(path string, sourceID, destID int) {
 }
 
 func (c *Controller) MoveImages(paths []string, sourceID, destID int) {
-	err := c.db.UpdateImages(paths, destID)
+	err := c.db.UpdateImages(paths, sourceID, destID)
 	if err != nil {
 		c.ui.ShowErrorDialog(err)
 		return
