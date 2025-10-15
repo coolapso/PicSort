@@ -15,7 +15,6 @@ type ThumbnailProvider interface {
 	GetThumbnail(path string) (image.Image, bool)
 	UpdatePreview(path string)
 	GetImagePaths(bindID int) []string
-	MoveImage(path string, sourceID, destID int)
 	MoveImages(paths []string, sourceID, destID int)
 }
 
@@ -205,8 +204,7 @@ func (g *ThumbnailGridWrap) MoveImages(destID int) {
 	// 	return
 	// }
 	if len(g.selectedIDs) == 0 || g.currentPath == "" {
-		fmt.Println(g.currentPath)
-		g.dataProvider.MoveImage(g.currentPath, g.id, destID)
+		g.dataProvider.MoveImages([]string{g.currentPath}, g.id, destID)
 		return
 	}
 }

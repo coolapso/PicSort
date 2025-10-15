@@ -125,6 +125,10 @@ func (p *PicsortUI) RemoveBin() {
 	}
 }
 
+func(p *PicsortUI) GetBinCount() int {
+	return len(p.binGrids)
+}
+
 func (p *PicsortUI) globalKeyBinds() {
 	ctrlT := &desktop.CustomShortcut{KeyName: fyne.KeyT, Modifier: fyne.KeyModifierControl}
 	p.win.Canvas().AddShortcut(ctrlT, func(shortcut fyne.Shortcut) {
