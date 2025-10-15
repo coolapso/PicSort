@@ -111,7 +111,11 @@ func (db *DB) SetThumbnailsBatch(thumbnails map[string]image.Image) error {
 	}
 	defer thumbStmt.Close()
 
-	binStmt, err := tx.Prepare("INSERT OR IGNORE INTO image_bins (image_path, bin_id) VALUES (?, 0)")
+	binStmt, err := tx.Prepare(`
+		INSERT INTO image_bins (image_path, bin_id)
+		SELECT ?, 0
+		WHERE NOT EXISTS (SELECT 1 FROM image_bins WHERE image_path = ?)
+	`)
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -130,7 +134,7 @@ func (db *DB) SetThumbnailsBatch(thumbnails map[string]image.Image) error {
 			continue
 		}
 
-		if _, err := binStmt.Exec(path); err != nil {
+		if _, err := binStmt.Exec(path, path); err != nil {
 			log.Printf("Error executing batch statement for bin %s: %v", path, err)
 			continue
 		}
