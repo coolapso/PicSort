@@ -26,6 +26,7 @@ type CoreUI interface {
 	FocusThumbnails(id int)
 	GetWindow() fyne.Window
 	UpdatePreview(i image.Image, path string)
+	GetBinCount() int
 }
 
 type Controller struct {
@@ -187,21 +188,11 @@ func (c *Controller) ThumbMutex() *sync.Mutex {
 	return c.thumbMutex
 }
 
-func (c *Controller) MoveImage(path string, sourceID, destID int) {
-	if sourceID == destID {
-		return
-	}
-
-	err := c.db.UpdateImage(path, sourceID, destID)
-	if err != nil {
-		c.ui.ShowErrorDialog(err)
-		return
-	}
-	c.ui.ReloadBin(sourceID)
-	c.ui.ReloadBin(destID)
-}
-
 func (c *Controller) MoveImages(paths []string, sourceID, destID int) {
+	if sourceID == destID || destID > c.ui.GetBinCount() {
+		return
+	}
+
 	err := c.db.UpdateImages(paths, sourceID, destID)
 	if err != nil {
 		c.ui.ShowErrorDialog(err)

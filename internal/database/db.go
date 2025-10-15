@@ -171,12 +171,6 @@ func (db *DB) GetImagePaths(binID int) ([]string, error) {
 	return paths, nil
 }
 
-// MoveImage updates the bin for a given image.
-func (db *DB) UpdateImage(path string, sourceID, destID int) error {
-	_, err := db.conn.Exec("UPDATE image_bins SET bin_id = ? WHERE image_path  = ? AND bin_id = ?", destID, path, sourceID)
-	return err
-}
-
 // CopyImageToBin adds an image to a new bin without removing it from existing ones.
 func (db *DB) AddImageToBin(path string, destID int) error {
 	_, err := db.conn.Exec("INSERT OR IGNORE INTO image_bins (image_path, bin_id) VALUES (?, ?)", path, destID)
@@ -197,7 +191,7 @@ func (db *DB) UpdateImages(paths []string, sourceID, destID int) error {
 	defer stmt.Close()
 
 	for _, path := range paths {
-		if _, err := stmt.Exec(destID, path); err != nil {
+		if _, err := stmt.Exec(destID, path, sourceID); err != nil {
 			log.Printf("Error executing batch update for %s: %v", path, err)
 		}
 	}
