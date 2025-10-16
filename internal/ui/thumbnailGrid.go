@@ -25,7 +25,7 @@ type ThumbnailGridWrap struct {
 	selectedIDs     []widget.GridWrapItemID
 	previousKey     fyne.KeyName
 	previousKeyAt   time.Time
-	currentPath     string
+	currentID       widget.GridWrapItemID
 
 	dataProvider ThumbnailProvider
 	imagePaths   []string
@@ -129,8 +129,7 @@ func (g *ThumbnailGridWrap) onHighlighted(id widget.GridWrapItemID) {
 	}
 	path := g.imagePaths[id]
 	g.dataProvider.UpdatePreview(path)
-	g.currentPath = path
-	fmt.Println(id)
+	g.currentID = id
 
 	if !shiftPressed() {
 		g.selectionAnchor = -1
@@ -203,9 +202,26 @@ func (g *ThumbnailGridWrap) MoveImages(destID int) {
 	// 	}
 	// 	return
 	// }
-	if len(g.selectedIDs) == 0 || g.currentPath == "" {
-		g.dataProvider.MoveImages([]string{g.currentPath}, g.id, destID)
+	if len(g.imagePaths) == 0 {
 		return
+	}
+
+	if len(g.selectedIDs) == 0 {
+		imagePath := g.imagePaths[g.currentID]
+		if imagePath == "" {
+			return
+		}
+		g.dataProvider.MoveImages([]string{imagePath}, g.id, destID)
+
+		// Doing this because on highlighted is not triggered when refreshing,
+		// and controller has no clue of what images each grid contains
+		// therefore we have to force the preview to update to the next item,
+		// but we need to make sure that we will have one to show after the update
+		// verify that it does not go out of bounds
+		if g.currentID+1 > len(g.imagePaths)-1 {
+			return
+		}
+		g.dataProvider.UpdatePreview(g.imagePaths[g.currentID+1])
 	}
 }
 
