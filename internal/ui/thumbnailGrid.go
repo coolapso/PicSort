@@ -1,7 +1,6 @@
 package ui
 
 import (
-	"fmt"
 	"image"
 	"slices"
 	"time"
@@ -197,32 +196,37 @@ func (g *ThumbnailGridWrap) updateItem(i widget.GridWrapItemID, o fyne.CanvasObj
 }
 
 func (g *ThumbnailGridWrap) MoveImages(destID int) {
-	// if len(g.selectedIDs) > 0 {
-	// 		g.dataProvider.MoveImages(g.imagePaths, g.id, destID)
-	// 	}
-	// 	return
-	// }
 	if len(g.imagePaths) == 0 {
 		return
 	}
 
+	var toMove []string
 	if len(g.selectedIDs) == 0 {
 		imagePath := g.imagePaths[g.currentID]
 		if imagePath == "" {
 			return
 		}
-		g.dataProvider.MoveImages([]string{imagePath}, g.id, destID)
-
-		// Doing this because on highlighted is not triggered when refreshing,
-		// and controller has no clue of what images each grid contains
-		// therefore we have to force the preview to update to the next item,
-		// but we need to make sure that we will have one to show after the update
-		// verify that it does not go out of bounds
-		if g.currentID+1 > len(g.imagePaths)-1 {
-			return
-		}
-		g.dataProvider.UpdatePreview(g.imagePaths[g.currentID+1])
+		toMove = []string{imagePath}
 	}
+
+	if len(g.selectedIDs) > 0 {
+		for _, id := range g.selectedIDs {
+			toMove = append(toMove, g.imagePaths[id])
+		}
+	}
+
+	g.dataProvider.MoveImages(toMove, g.id, destID)
+
+	// need to force the preview update from here
+	// Doing this because on highlighted is not triggered when refreshing,
+	// and controller has no clue of what images each grid contains
+	// therefore have to force the preview to update to the next item,
+	// but got to make sure that is now out of bounds and
+	// will have at least one to show after the update
+	if g.currentID+1 > len(g.imagePaths)-1 {
+		return
+	}
+	g.dataProvider.UpdatePreview(g.imagePaths[g.currentID+1])
 }
 
 func NewThumbnailGrid(id int, d ThumbnailProvider) *ThumbnailGridWrap {
