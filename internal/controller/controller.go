@@ -23,7 +23,7 @@ type CoreUI interface {
 	ReloadAll()
 	ReloadBin(id int)
 	ShowErrorDialog(err error)
-	FocusThumbnails(id int)
+	GoToTab(id int)
 	GetWindow() fyne.Window
 	UpdatePreview(i image.Image, path string)
 	GetBinCount() int
@@ -54,7 +54,6 @@ func (c *Controller) LoadDataset(path string) {
 	}
 
 	imagePaths := d.Images
-	c.ui.ReloadAll()
 
 	total := float64(len(imagePaths))
 	var processedCount int64
@@ -82,7 +81,7 @@ func (c *Controller) LoadDataset(path string) {
 
 	c.ui.ReloadAll()
 	c.ui.HideProgressDialog()
-	c.ui.FocusThumbnails(0)
+	c.ui.GoToTab(0)
 }
 
 func (c *Controller) dbinit(path string) error {
@@ -207,4 +206,3 @@ func New(ui CoreUI) *Controller {
 		thumbMutex: &sync.Mutex{},
 	}
 }
-

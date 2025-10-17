@@ -48,7 +48,7 @@ func (p *PicsortUI) openFolderDialog() {
 func (p *PicsortUI) bottomBar() fyne.Widget {
 	return widget.NewToolbar(
 		widget.NewToolbarAction(theme.ContentAddIcon(), func() {
-			p.AddBin()
+			p.NewBin()
 		}),
 
 		widget.NewToolbarAction(theme.ContentRemoveIcon(), func() {
