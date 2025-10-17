@@ -34,7 +34,6 @@ type Controller struct {
 	db         *database.DB
 	thumbCache map[string]image.Image
 	thumbMutex *sync.Mutex
-	// imagePaths []string
 
 	wg   *sync.WaitGroup
 	jobs chan string
