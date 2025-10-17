@@ -21,7 +21,6 @@ type PicsortUI struct {
 	win        fyne.Window
 	controller *controller.Controller
 
-	layout         string
 	tabs           *container.AppTabs
 	binGrids       map[int]*ThumbnailGridWrap
 	progress       *widget.ProgressBar
@@ -38,14 +37,14 @@ func (p *PicsortUI) ShowProgressDialog(msg string) {
 		p.progressTitle.SetText(msg)
 		p.progressDialog.Show()
 		p.progress.Show()
-		p.progressValue.Set(0)
+		_ = p.progressValue.Set(0)
 	})
 }
 
 func (p *PicsortUI) SetProgress(progress float64, f string) {
 	fyne.Do(func() {
 		p.progressFile.SetText(f)
-		p.progressValue.Set(progress)
+		_ = p.progressValue.Set(progress)
 	})
 }
 
