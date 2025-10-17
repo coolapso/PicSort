@@ -10,7 +10,6 @@ import (
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/data/binding"
 	"fyne.io/fyne/v2/driver/desktop"
-	"fyne.io/fyne/v2/layout"
 
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/widget"
@@ -22,7 +21,8 @@ type PicsortUI struct {
 	win        fyne.Window
 	controller *controller.Controller
 
-	bins           *fyne.Container
+	layout         string
+	tabs           *container.AppTabs
 	binGrids       map[int]*ThumbnailGridWrap
 	progress       *widget.ProgressBar
 	progressValue  binding.Float
@@ -68,21 +68,42 @@ func (p *PicsortUI) ShowErrorDialog(err error) {
 func (p *PicsortUI) ReloadAll() {
 	fyne.Do(func() {
 		for _, bin := range p.binGrids {
-			bin.Reload()
+			p.ReloadBin(bin.id)
 		}
 	})
 }
 
 func (p *PicsortUI) ReloadBin(id int) {
 	fyne.Do(func() {
+		p.binGrids[id].unselectAll()
 		p.binGrids[id].Reload()
+		p.setTabTitle(id)
+		p.tabs.Refresh()
 	})
 }
 
-func (p *PicsortUI) FocusThumbnails(id int) {
+func (p *PicsortUI) GoToTab(id int) {
 	fyne.Do(func() {
-		p.win.Canvas().Focus(p.binGrids[id])
+		if id < len(p.tabs.Items) {
+			p.tabs.SelectIndex(id)
+			p.win.Canvas().Focus(p.binGrids[id])
+		}
 	})
+}
+
+func (p *PicsortUI) setTabTitle(id int) {
+	tabTitle := fmt.Sprintf("Bin %d", id)
+	if id == 0 {
+		tabTitle = "To Sort"
+	}
+
+	if p.binGrids[id].itemCount() > 0 {
+		tabTitle = fmt.Sprintf("Bin %d (%d)", id, p.binGrids[id].itemCount())
+		if id == 0 {
+			tabTitle = fmt.Sprintf("To Sort (%d)", p.binGrids[id].itemCount())
+		}
+	}
+	p.tabs.Items[id].Text = tabTitle
 }
 
 func (p *PicsortUI) GetWindow() fyne.Window { return p.win }
@@ -95,44 +116,39 @@ func (p *PicsortUI) UpdatePreview(i image.Image, path string) {
 	})
 }
 
-func (p *PicsortUI) sortingBins() {
-	p.bins = container.New(layout.NewGridLayout(5))
-	for i := 1; i <= 5; i++ {
-		p.AddBin()
+func (p *PicsortUI) initBins() {
+	for i := 0; i <= 5; i++ {
+		p.NewBin()
 	}
+
 }
 
-func (p *PicsortUI) AddBin() {
-	if len(p.bins.Objects) <= 9 {
-		binCount := len(p.bins.Objects) + 1
+func (p *PicsortUI) NewBin() {
+	if len(p.binGrids) <= 9 {
+		binCount := len(p.binGrids)
 		binGrid := NewThumbnailGrid(binCount, p.controller)
 		p.binGrids[binCount] = binGrid
-		card := widget.NewCard(fmt.Sprintf("Bin %d", binCount), "", binGrid)
-		p.bins.Add(card)
-		p.bins.Layout = layout.NewGridLayout(binCount)
-		p.bins.Refresh()
+		p.tabs.Append(container.NewTabItem("", p.binGrids[binCount]))
+		p.setTabTitle(binCount)
 	}
 }
 
 func (p *PicsortUI) RemoveBin() {
-	if len(p.bins.Objects) > 1 {
-		binCount := len(p.bins.Objects)
-		delete(p.binGrids, binCount)
-		binCount = len(p.bins.Objects) - 1
-		p.bins.Remove(p.bins.Objects[binCount])
-		p.bins.Layout = layout.NewGridLayout(binCount)
-		p.bins.Refresh()
+	if len(p.binGrids) > 1 {
+		idToRemove := len(p.binGrids) - 1
+		delete(p.binGrids, idToRemove)
+		p.tabs.Remove(p.tabs.Items[idToRemove])
 	}
 }
 
-func(p *PicsortUI) GetBinCount() int {
+func (p *PicsortUI) GetBinCount() int {
 	return len(p.binGrids)
 }
 
 func (p *PicsortUI) globalKeyBinds() {
 	ctrlT := &desktop.CustomShortcut{KeyName: fyne.KeyT, Modifier: fyne.KeyModifierControl}
 	p.win.Canvas().AddShortcut(ctrlT, func(shortcut fyne.Shortcut) {
-		p.FocusThumbnails(0)
+		p.GoToTab(0)
 	})
 
 	binKeys := []fyne.KeyName{
@@ -143,7 +159,7 @@ func (p *PicsortUI) globalKeyBinds() {
 	for i, key := range binKeys {
 		shortcut := &desktop.CustomShortcut{KeyName: key, Modifier: fyne.KeyModifierControl}
 		p.win.Canvas().AddShortcut(shortcut, func(s fyne.Shortcut) {
-			p.FocusThumbnails(i)
+			p.GoToTab(i)
 		})
 	}
 
@@ -170,17 +186,14 @@ func (p *PicsortUI) Build() {
 
 	topBar := p.topBar()
 	bottomBar := p.bottomBar()
-	p.binGrids[0] = NewThumbnailGrid(0, p.controller)
-	p.sortingBins()
+	p.tabs = container.NewAppTabs()
+	p.initBins()
 
 	p.preview = canvas.NewImageFromImage(nil)
 	p.preview.FillMode = canvas.ImageFillContain
 	p.previewCard = widget.NewCard("Preview", "Selected image", p.preview)
-	topSplit := container.NewHSplit(p.binGrids[0], p.previewCard)
-	topSplit.SetOffset(0.3)
-
-	mainContent := container.NewVSplit(topSplit, p.bins)
-	mainContent.SetOffset(0.8)
+	mainContent := container.NewHSplit(p.tabs, p.previewCard)
+	mainContent.SetOffset(0.3)
 
 	p.win.SetContent(container.NewBorder(topBar, bottomBar, nil, nil, mainContent))
 	p.win.Resize(fyne.NewSize(1280, 720))
