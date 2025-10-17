@@ -145,11 +145,6 @@ func (p *PicsortUI) GetBinCount() int {
 }
 
 func (p *PicsortUI) globalKeyBinds() {
-	ctrlT := &desktop.CustomShortcut{KeyName: fyne.KeyT, Modifier: fyne.KeyModifierControl}
-	p.win.Canvas().AddShortcut(ctrlT, func(shortcut fyne.Shortcut) {
-		p.GoToTab(0)
-	})
-
 	binKeys := []fyne.KeyName{
 		fyne.Key0, fyne.Key1, fyne.Key2, fyne.Key3, fyne.Key4, fyne.Key5,
 		fyne.Key6, fyne.Key7, fyne.Key8, fyne.Key9,
@@ -165,6 +160,16 @@ func (p *PicsortUI) globalKeyBinds() {
 	ctrlO := &desktop.CustomShortcut{KeyName: fyne.KeyO, Modifier: fyne.KeyModifierControl}
 	p.win.Canvas().AddShortcut(ctrlO, func(s fyne.Shortcut) {
 		p.openFolderDialog()
+	})
+
+	addBin := &desktop.CustomShortcut{KeyName: fyne.KeyT, Modifier: fyne.KeyModifierControl}
+	p.win.Canvas().AddShortcut(addBin, func(s fyne.Shortcut) {
+		p.NewBin()
+	})
+
+	rmBin := &desktop.CustomShortcut{KeyName: fyne.KeyW, Modifier: fyne.KeyModifierControl}
+	p.win.Canvas().AddShortcut(rmBin, func(s fyne.Shortcut) {
+		p.RemoveBin()
 	})
 }
 
