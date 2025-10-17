@@ -166,22 +166,20 @@ func (c *Controller) GetThumbnail(path string) (image.Image, bool) {
 }
 
 func (c *Controller) UpdatePreview(path string) {
-	go func() {
-		file, err := os.Open(path)
-		if err != nil {
-			log.Printf("could not open file for preview %s: %v", path, err)
-			return
-		}
-		defer file.Close()
+	file, err := os.Open(path)
+	if err != nil {
+		log.Printf("could not open file for preview %s: %v", path, err)
+		return
+	}
+	defer file.Close()
 
-		img, _, err := image.Decode(file)
-		if err != nil {
-			log.Printf("could not decode image for preview %s: %v", path, err)
-			return
-		}
+	img, _, err := image.Decode(file)
+	if err != nil {
+		log.Printf("could not decode image for preview %s: %v", path, err)
+		return
+	}
 
-		c.ui.UpdatePreview(img, path)
-	}()
+	c.ui.UpdatePreview(img, path)
 }
 
 func (c *Controller) ThumbMutex() *sync.Mutex {
@@ -209,3 +207,4 @@ func New(ui CoreUI) *Controller {
 		thumbMutex: &sync.Mutex{},
 	}
 }
+
