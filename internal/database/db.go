@@ -58,6 +58,8 @@ func (db *DB) migrate() error {
 			PRIMARY KEY (image_path, bin_id),
 			FOREIGN KEY (image_path) REFERENCES thumbnails(path) ON DELETE CASCADE
 		);
+
+		CREATE INDEX IF NOT EXISTS idx_iamge_bins_bin_id ON image_bins(bin_id);
 	`)
 	if err != nil {
 		return err
