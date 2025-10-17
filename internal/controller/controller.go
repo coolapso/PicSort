@@ -115,7 +115,7 @@ func (c *Controller) cacheThumbnails(total float64, processedCount *int64) {
 		}
 
 		img, _, err := image.Decode(file)
-		file.Close()
+		_ = file.Close()
 		if err != nil {
 			log.Printf("could not decode image %s: %v", imgPath, err)
 			continue
@@ -169,7 +169,9 @@ func (c *Controller) UpdatePreview(path string) {
 		log.Printf("could not open file for preview %s: %v", path, err)
 		return
 	}
-	defer file.Close()
+	defer func() {
+		_ = file.Close()
+	}()
 
 	img, _, err := image.Decode(file)
 	if err != nil {
