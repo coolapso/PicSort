@@ -135,6 +135,7 @@ func (g *ThumbnailGridWrap) onHighlighted(id widget.GridWrapItemID) {
 
 	if !shiftPressed() {
 		g.selectionAnchor = -1
+		return
 	}
 
 	if shiftPressed() {
@@ -146,9 +147,11 @@ func (g *ThumbnailGridWrap) onHighlighted(id widget.GridWrapItemID) {
 			start, end = end, start
 		}
 
+		var newSelection []widget.GridWrapItemID
 		for i := start; i <= end; i++ {
-			g.selectedIDs = append(g.selectedIDs, i)
+			newSelection = append(newSelection, i)
 		}
+		g.selectedIDs = newSelection
 		g.Refresh()
 	}
 }
