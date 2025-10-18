@@ -102,7 +102,9 @@ func (c *Controller) cacheImages(total float64, processedCount *int64) {
 	defer c.wg.Done()
 	for imgPath := range c.jobs {
 		if img, found := c.getFromDBCache(imgPath); found {
+			c.cacheMutex.Lock()
 			c.imageCache[imgPath] = img
+			c.cacheMutex.Unlock()
 			atomic.AddInt64(processedCount, 1)
 			progress := float64(atomic.LoadInt64(processedCount)) / total
 			c.ui.SetProgress(progress, filepath.Base(imgPath))
