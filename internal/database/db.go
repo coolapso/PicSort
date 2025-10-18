@@ -20,6 +20,11 @@ type DB struct {
 	conn *sql.DB
 }
 
+type CachedImage struct {
+	Thumbnail image.Image
+	Preview   image.Image
+}
+
 func New(datasetPath string) (*DB, error) {
 	dbPath := filepath.Join(datasetPath, dbFileName)
 	conn, err := sql.Open("sqlite3", dbPath+"?_journal=WAL")
@@ -49,7 +54,8 @@ func (db *DB) migrate() error {
 
 		CREATE TABLE IF NOT EXISTS thumbnails (
 			path TEXT PRIMARY KEY,
-			data BLOB
+			thumbnail BLOB,
+			preview BLOB
 		);
 
 		CREATE TABLE IF NOT EXISTS image_bins (
@@ -84,7 +90,7 @@ func (db *DB) migrate() error {
 
 func (db *DB) GetThumbnail(path string) (image.Image, bool) {
 	var data []byte
-	err := db.conn.QueryRow("SELECT data FROM thumbnails WHERE path = ?", path).Scan(&data)
+	err := db.conn.QueryRow("SELECT thumbnail FROM thumbnails WHERE path = ?", path).Scan(&data)
 	if err != nil {
 		if err != sql.ErrNoRows {
 			log.Printf("error getting thumbnail from DB for %s: %v", path, err)
@@ -100,18 +106,36 @@ func (db *DB) GetThumbnail(path string) (image.Image, bool) {
 	return img, true
 }
 
-func (db *DB) SetThumbnailsBatch(thumbnails map[string]image.Image) error {
+func (db *DB) GetPreview(path string) (image.Image, bool) {
+	var data []byte
+	err := db.conn.QueryRow("SELECT preview FROM thumbnails WHERE path = ?", path).Scan(&data)
+	if err != nil {
+		if err != sql.ErrNoRows {
+			log.Printf("error getting preview from DB for %s: %v", path, err)
+		}
+		return nil, false
+	}
+
+	img, err := jpeg.Decode(bytes.NewBuffer(data))
+	if err != nil {
+		log.Printf("error decoding preview for %s: %v", path, err)
+	}
+
+	return img, true
+}
+
+func (db *DB) SetThumbnailsBatch(images map[string]CachedImage) error {
 	tx, err := db.conn.Begin()
 	if err != nil {
 		return err
 	}
 
-	thumbStmt, err := tx.Prepare("INSERT OR REPLACE INTO thumbnails (path, data) VALUES (?, ?)")
+	imgStmt, err := tx.Prepare("INSERT OR REPLACE INTO thumbnails (path, thumbnail, preview) VALUES (?, ?, ?)")
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
-	defer thumbStmt.Close()
+	defer imgStmt.Close()
 
 	binStmt, err := tx.Prepare(`
 		INSERT INTO image_bins (image_path, bin_id)
@@ -124,14 +148,19 @@ func (db *DB) SetThumbnailsBatch(thumbnails map[string]image.Image) error {
 	}
 	defer binStmt.Close()
 
-	for path, img := range thumbnails {
-		var buf bytes.Buffer
-		if err := jpeg.Encode(&buf, img, nil); err != nil {
+	for path, imgData := range images {
+		var thumBuf, previewBuf bytes.Buffer
+		if err := jpeg.Encode(&thumBuf, imgData.Thumbnail, nil); err != nil {
 			log.Printf("Error encoding thumbnail for %s: %v", path, err)
 			continue
 		}
 
-		if _, err := thumbStmt.Exec(path, buf.Bytes()); err != nil {
+		if err := jpeg.Encode(&previewBuf, imgData.Preview, nil); err != nil {
+			log.Printf("Error encoding  preview for %s: %v", path, err)
+			continue
+		}
+
+		if _, err := imgStmt.Exec(path, thumBuf.Bytes(), previewBuf.Bytes()); err != nil {
 			log.Printf("Error executing batch statement for %s: %v", path, err)
 			continue
 		}

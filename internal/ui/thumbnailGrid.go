@@ -11,7 +11,7 @@ import (
 
 // The ThumbnailProvider needs to provide way to get thumbnails and its paths, as well as a way to update the preview.
 type ThumbnailProvider interface {
-	GetThumbnail(path string) (image.Image, bool)
+	GetThumbnail(path string) image.Image
 	UpdatePreview(path string)
 	GetImagePaths(bindID int) []string
 	MoveImages(paths []string, sourceID, destID int)
@@ -182,7 +182,7 @@ func (g *ThumbnailGridWrap) updateItem(i widget.GridWrapItemID, o fyne.CanvasObj
 	path := g.imagePaths[i]
 	imgCheck := o.(*Thumbnail)
 
-	if thumb, ok := g.dataProvider.GetThumbnail(path); ok {
+	if thumb := g.dataProvider.GetThumbnail(path); thumb != nil {
 		imgCheck.Image = thumb
 	}
 
