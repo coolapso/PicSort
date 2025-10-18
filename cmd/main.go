@@ -9,7 +9,6 @@ func main() {
 	a := app.NewWithID("picsort")
 	w := a.NewWindow("PicSort")
 
-	picsortUI := ui.New(a, w)
-	picsortUI.Build()
+	ui.New(a, w)
 	w.ShowAndRun()
 }
