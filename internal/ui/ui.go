@@ -30,6 +30,7 @@ type PicsortUI struct {
 	progressDialog dialog.Dialog
 	preview        *canvas.Image
 	previewCard    *widget.Card
+	mainContent    *container.Split
 }
 
 func (p *PicsortUI) ShowProgressDialog(msg string) {
@@ -179,6 +180,26 @@ func (p *PicsortUI) globalKeyBinds() {
 	p.win.Canvas().AddShortcut(rmBin, func(s fyne.Shortcut) {
 		p.RemoveBin()
 	})
+
+	ctrlL := &desktop.CustomShortcut{KeyName: fyne.KeyL, Modifier: fyne.KeyModifierControl}
+	p.win.Canvas().AddShortcut(ctrlL, func(s fyne.Shortcut) {
+		offset := p.mainContent.Offset
+		newOffset := offset + 0.1
+		if newOffset > 1.0 {
+			newOffset = 1.0
+		}
+		p.mainContent.SetOffset(newOffset)
+	})
+
+	ctrlH := &desktop.CustomShortcut{KeyName: fyne.KeyH, Modifier: fyne.KeyModifierControl}
+	p.win.Canvas().AddShortcut(ctrlH, func(s fyne.Shortcut) {
+		offset := p.mainContent.Offset
+		newOffset := offset - 0.1
+		if newOffset < 0.0 {
+			newOffset = 0.0
+		}
+		p.mainContent.SetOffset(newOffset)
+	})
 }
 
 func (p *PicsortUI) Build() {
@@ -205,10 +226,10 @@ func (p *PicsortUI) Build() {
 	p.preview = canvas.NewImageFromImage(nil)
 	p.preview.FillMode = canvas.ImageFillContain
 	p.previewCard = widget.NewCard("Preview", "Selected image", p.preview)
-	mainContent := container.NewHSplit(p.tabs, p.previewCard)
-	mainContent.SetOffset(0.3)
+	p.mainContent = container.NewHSplit(p.tabs, p.previewCard)
+	p.mainContent.SetOffset(0.3)
 
-	p.win.SetContent(container.NewBorder(topBar, bottomBar, nil, nil, mainContent))
+	p.win.SetContent(container.NewBorder(topBar, bottomBar, nil, nil, p.mainContent))
 	p.win.Resize(fyne.NewSize(1280, 720))
 }
 
