@@ -33,6 +33,9 @@ type ThumbnailGridWrap struct {
 func (g *ThumbnailGridWrap) TypedKey(key *fyne.KeyEvent) {
 	translatedKey := *key
 	switch translatedKey.Name {
+	case fyne.KeySpace:
+		g.onSelected(g.currentID)
+		return
 	case fyne.KeyH:
 		translatedKey.Name = fyne.KeyLeft
 	case fyne.KeyJ:
