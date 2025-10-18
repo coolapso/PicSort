@@ -81,11 +81,19 @@ func (p *PicsortUI) ReloadBin(id int) {
 	})
 }
 
+func (p *PicsortUI) onTabSeelcted(tab *container.TabItem) {
+	if grid, ok := tab.Content.(fyne.Focusable); ok {
+		p.win.Canvas().Focus(grid)
+	}
+}
+
 func (p *PicsortUI) GoToTab(id int) {
 	fyne.Do(func() {
 		if id < len(p.tabs.Items) {
 			p.tabs.SelectIndex(id)
-			p.win.Canvas().Focus(p.binGrids[id])
+			if p.tabs.SelectedIndex() == id {
+				p.win.Canvas().Focus(p.binGrids[id])
+			}
 		}
 	})
 }
@@ -191,6 +199,7 @@ func (p *PicsortUI) Build() {
 	topBar := p.topBar()
 	bottomBar := p.bottomBar()
 	p.tabs = container.NewAppTabs()
+	p.tabs.OnSelected = p.onTabSeelcted
 	p.initBins()
 
 	p.preview = canvas.NewImageFromImage(nil)
