@@ -10,7 +10,6 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"fyne.io/fyne/v2"
 	"github.com/coolapso/picsort/internal/data"
 	"github.com/coolapso/picsort/internal/database"
 	"github.com/nfnt/resize"
@@ -19,15 +18,11 @@ import (
 type CoreUI interface {
 	ShowProgressDialog(msg string)
 	SetProgress(progress float64, f string)
-	HideProgressDialog()
-	ReloadAll()
 	ReloadBin(id int)
 	ShowErrorDialog(err error)
-	GoToTab(id int)
-	GetWindow() fyne.Window
 	UpdatePreview(i image.Image, path string)
 	GetBinCount() int
-	HideWelcome()
+	LoadContent()
 }
 
 type Controller struct {
@@ -79,10 +74,7 @@ func (c *Controller) LoadDataset(path string) {
 		}
 	}
 
-	c.ui.ReloadAll()
-	c.ui.HideProgressDialog()
-	c.ui.HideWelcome()
-	c.ui.GoToTab(0)
+	c.ui.LoadContent()
 }
 
 func (c *Controller) dbinit(path string) error {
