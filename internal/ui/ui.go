@@ -229,11 +229,14 @@ func (p *PicsortUI) setGlobalKeyBinds() {
 	})
 }
 
-func (p *PicsortUI) HideWelcome() {
+func (p *PicsortUI) LoadContent() {
+	p.ReloadAll()
+	p.HideProgressDialog()
 	p.mainContent.Show()
-	p.mainStack.Objects[0].Hide()
 	p.addBinButton.ToolbarObject().Show()
 	p.rmBinButton.ToolbarObject().Show()
+	p.GoToTab(0)
+	p.mainStack.Objects[0].Hide()
 }
 
 func New(a fyne.App, w fyne.Window) {
