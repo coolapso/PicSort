@@ -61,6 +61,14 @@ func (r *thumbnailRenderer) Objects() []fyne.CanvasObject {
 	return []fyne.CanvasObject{r.thumb, r.checkIcon}
 }
 
+func (ic *Thumbnail) Tapped(*fyne.PointEvent) {
+	ic.Checked = !ic.Checked
+	if ic.OnChanged != nil {
+		ic.OnChanged(ic.Checked)
+	}
+	ic.Refresh()
+}
+
 func (r *thumbnailRenderer) Destroy() {}
 
 func NewThumbnail(img image.Image, onChanged func(bool)) *Thumbnail {
