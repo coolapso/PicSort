@@ -3,6 +3,7 @@ package ui
 import (
 	"fmt"
 	"image"
+	"log"
 	"path/filepath"
 
 	"fyne.io/fyne/v2"
@@ -14,6 +15,11 @@ import (
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/widget"
 	"github.com/coolapso/picsort/internal/controller"
+)
+
+const (
+	titleText      = "Welcome to Picsort!"
+	welcomeMessage = "Picsort helps you quickly organize pictures into different folders.\n\nWhile designed for sorting images for computer vision datasets, it's versatile enough for any use case.\n\nLoad your dataset and start sorting comfortably using only your keyboard.\n\nPress ? to see the help menu."
 )
 
 type PicsortUI struct {
@@ -30,7 +36,13 @@ type PicsortUI struct {
 	progressDialog dialog.Dialog
 	preview        *canvas.Image
 	previewCard    *widget.Card
+	mainStack      *fyne.Container
+	welcomeStack   *fyne.Container
 	mainContent    *container.Split
+	topBar         *fyne.Container
+	bottomBar      fyne.Widget
+	addBinButton   widget.ToolbarItem
+	rmBinButton    widget.ToolbarItem
 }
 
 func (p *PicsortUI) ShowProgressDialog(msg string) {
@@ -63,6 +75,21 @@ func (p *PicsortUI) ShowErrorDialog(err error) {
 		})
 		d.Show()
 	})
+}
+
+func (p *PicsortUI) openFolderDialog() {
+	folderDialog := dialog.NewFolderOpen(func(uri fyne.ListableURI, err error) {
+		if err != nil {
+			log.Println("Error opening folder dialog:", err)
+			return
+		}
+		if uri == nil {
+			return
+		}
+		go p.controller.LoadDataset(uri.Path())
+	}, p.win)
+	folderDialog.Resize(fyne.NewSize(800, 600)) // Set the size here
+	folderDialog.Show()
 }
 
 func (p *PicsortUI) ReloadAll() {
@@ -153,7 +180,7 @@ func (p *PicsortUI) GetBinCount() int {
 	return len(p.binGrids)
 }
 
-func (p *PicsortUI) globalKeyBinds() {
+func (p *PicsortUI) setGlobalKeyBinds() {
 	binKeys := []fyne.KeyName{
 		fyne.Key0, fyne.Key1, fyne.Key2, fyne.Key3, fyne.Key4, fyne.Key5,
 		fyne.Key6, fyne.Key7, fyne.Key8, fyne.Key9,
@@ -202,9 +229,31 @@ func (p *PicsortUI) globalKeyBinds() {
 	})
 }
 
-func (p *PicsortUI) Build() {
-	p.globalKeyBinds()
+func (p *PicsortUI) HideWelcome() {
+	p.mainContent.Show()
+	p.mainStack.Objects[0].Hide()
+	p.addBinButton.ToolbarObject().Show()
+	p.rmBinButton.ToolbarObject().Show()
+}
+
+func New(a fyne.App, w fyne.Window) {
+	p := &PicsortUI{
+		app:           a,
+		win:           w,
+		progressValue: binding.NewFloat(),
+		progressTitle: widget.NewLabel(""),
+		progressFile:  widget.NewLabel(""),
+		binGrids:      make(map[int]*ThumbnailGridWrap),
+	}
+	p.controller = controller.New(p)
+	p.setTopBar()
+	p.setBottomBar()
+	p.tabs = container.NewAppTabs()
+	p.tabs.OnSelected = p.onTabSelected
 	p.progress = widget.NewProgressBarWithData(p.progressValue)
+	p.setGlobalKeyBinds()
+	p.initBins()
+
 	progressContent := container.NewVBox(
 		p.progressTitle,
 		p.progress,
@@ -217,31 +266,18 @@ func (p *PicsortUI) Build() {
 	)
 	p.progressDialog.Resize(fyne.NewSize(500, 150))
 
-	topBar := p.topBar()
-	bottomBar := p.bottomBar()
-	p.tabs = container.NewAppTabs()
-	p.tabs.OnSelected = p.onTabSelected
-	p.initBins()
-
 	p.preview = canvas.NewImageFromImage(nil)
 	p.preview.FillMode = canvas.ImageFillContain
-	p.previewCard = widget.NewCard("Preview", "Selected image", p.preview)
+	p.previewCard = widget.NewCard("Preview", "", p.preview)
+
+	welcome := newWelcomeScreen()
+
 	p.mainContent = container.NewHSplit(p.tabs, p.previewCard)
 	p.mainContent.SetOffset(0.3)
 
-	p.win.SetContent(container.NewBorder(topBar, bottomBar, nil, nil, p.mainContent))
-	p.win.Resize(fyne.NewSize(1280, 720))
-}
+	p.mainStack = container.NewStack(welcome, p.mainContent)
+	p.mainContent.Hidden = true
 
-func New(a fyne.App, w fyne.Window) *PicsortUI {
-	p := &PicsortUI{
-		app:           a,
-		win:           w,
-		progressValue: binding.NewFloat(),
-		progressTitle: widget.NewLabel(""),
-		progressFile:  widget.NewLabel(""),
-		binGrids:      make(map[int]*ThumbnailGridWrap),
-	}
-	p.controller = controller.New(p)
-	return p
+	p.win.SetContent(container.NewBorder(p.topBar, p.bottomBar, nil, nil, p.mainStack))
+	p.win.Resize(fyne.NewSize(1280, 720))
 }

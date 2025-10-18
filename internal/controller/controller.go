@@ -27,6 +27,7 @@ type CoreUI interface {
 	GetWindow() fyne.Window
 	UpdatePreview(i image.Image, path string)
 	GetBinCount() int
+	HideWelcome()
 }
 
 type Controller struct {
@@ -80,6 +81,7 @@ func (c *Controller) LoadDataset(path string) {
 
 	c.ui.ReloadAll()
 	c.ui.HideProgressDialog()
+	c.ui.HideWelcome()
 	c.ui.GoToTab(0)
 }
 

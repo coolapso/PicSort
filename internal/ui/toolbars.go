@@ -2,13 +2,10 @@ package ui
 
 import (
 	_ "embed"
-	// "fmt"
-	"log"
 	"net/url"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
-	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 )
@@ -20,41 +17,30 @@ func newURLToolbarAction(a fyne.App, icon fyne.Resource, urlStr string) widget.T
 	})
 }
 
-func (p *PicsortUI) topBar() *fyne.Container {
+func (p *PicsortUI) setTopBar() {
 	openDataSetButton := widget.NewButton("Open dataset", p.openFolderDialog)
 	exportButton := widget.NewButton("Export", func() {})
 	helpButton := widget.NewButtonWithIcon("", theme.HelpIcon(), func() {})
 
-	return container.NewBorder(nil, nil, nil, helpButton,
+	p.topBar = container.NewBorder(nil, nil, nil, helpButton,
 		container.NewHBox(openDataSetButton, exportButton),
 	)
 }
 
-func (p *PicsortUI) openFolderDialog() {
-	folderDialog := dialog.NewFolderOpen(func(uri fyne.ListableURI, err error) {
-		if err != nil {
-			log.Println("Error opening folder dialog:", err)
-			return
-		}
-		if uri == nil {
-			return
-		}
-		go p.controller.LoadDataset(uri.Path())
-	}, p.win)
-	folderDialog.Resize(fyne.NewSize(800, 600)) // Set the size here
-	folderDialog.Show()
-}
+func (p *PicsortUI) setBottomBar() {
+	p.addBinButton = widget.NewToolbarAction(theme.ContentAddIcon(), func() {
+		p.NewBin()
+	})
+	p.addBinButton.ToolbarObject().Hide()
 
-func (p *PicsortUI) bottomBar() fyne.Widget {
-	return widget.NewToolbar(
-		widget.NewToolbarAction(theme.ContentAddIcon(), func() {
-			p.NewBin()
-		}),
+	p.rmBinButton = widget.NewToolbarAction(theme.ContentRemoveIcon(), func() {
+		p.RemoveBin()
+	})
+	p.rmBinButton.ToolbarObject().Hide()
 
-		widget.NewToolbarAction(theme.ContentRemoveIcon(), func() {
-			p.RemoveBin()
-		}),
-
+	p.bottomBar = widget.NewToolbar(
+		p.addBinButton,
+		p.rmBinButton,
 		widget.NewToolbarSpacer(),
 		newURLToolbarAction(p.app, Icons["sponsor"], "https://github.com/sponsors/coolapso"),
 		newURLToolbarAction(p.app, Icons["bmc"], "https://buymeacoffee.com"),
