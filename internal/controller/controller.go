@@ -29,6 +29,7 @@ type Controller struct {
 	ui         CoreUI
 	db         *database.DB
 	imageCache map[string]database.CachedImage
+	newCached  bool
 	cacheMutex *sync.Mutex
 
 	wg   *sync.WaitGroup
@@ -37,6 +38,7 @@ type Controller struct {
 
 func (c *Controller) LoadDataset(path string) {
 	c.ui.ShowProgressDialog("hang on, this may take a while...")
+	c.newCached = false
 	if err := c.dbinit(path); err != nil {
 		c.ui.ShowErrorDialog(err)
 		return
@@ -68,7 +70,7 @@ func (c *Controller) LoadDataset(path string) {
 	}
 	c.wg.Wait()
 
-	if len(c.imageCache) > 0 {
+	if len(c.imageCache) > 0 && c.newCached {
 		if err := c.db.SetThumbnailsBatch(c.imageCache); err != nil {
 			log.Printf("Error during batch thumbnail write: %v", err)
 		}
@@ -130,6 +132,11 @@ func (c *Controller) cacheImages(total float64, processedCount *int64) {
 		atomic.AddInt64(processedCount, 1)
 		progress := float64(atomic.LoadInt64(processedCount)) / total
 		c.ui.SetProgress(progress, filepath.Base(imgPath))
+		if !c.newCached {
+			c.cacheMutex.Lock()
+			c.newCached = true
+			c.cacheMutex.Unlock()
+		}
 	}
 }
 
