@@ -5,6 +5,10 @@ import (
 	"fyne.io/fyne/v2"
 )
 
+//go:embed assets/logo.png
+var logoBytes []byte
+var LogoIcon = &fyne.StaticResource{StaticName: "logo.png", StaticContent: logoBytes}
+
 //go:embed assets/discord.svg
 var discordLogoBytes []byte
 var DiscordIcon = &fyne.StaticResource{StaticName: "discord.svg", StaticContent: discordLogoBytes}
@@ -30,6 +34,7 @@ var xLogoBytes []byte
 var XIcon = &fyne.StaticResource{StaticName: "x.svg", StaticContent: xLogoBytes}
 
 var Icons = map[string]*fyne.StaticResource{
+	"logo":     LogoIcon,
 	"discord":  DiscordIcon,
 	"bmc":      CoffeeIcon,
 	"github":   GithubIcon,
