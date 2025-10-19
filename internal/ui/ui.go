@@ -17,11 +17,6 @@ import (
 	"github.com/coolapso/picsort/internal/controller"
 )
 
-const (
-	titleText      = "Welcome to Picsort!"
-	welcomeMessage = "Picsort helps you quickly organize pictures into different folders.\n\nWhile designed for sorting images for computer vision datasets, it's versatile enough for any use case.\n\nLoad your dataset and start sorting comfortably using only your keyboard.\n\nPress ? to see the help menu."
-)
-
 type PicsortUI struct {
 	app        fyne.App
 	win        fyne.Window
@@ -38,12 +33,14 @@ type PicsortUI struct {
 	preview        *canvas.Image
 	previewCard    *widget.Card
 	mainStack      *fyne.Container
-	welcomeStack   *fyne.Container
 	mainContent    *container.Split
 	topBar         *fyne.Container
 	bottomBar      fyne.Widget
 	addBinButton   widget.ToolbarItem
 	rmBinButton    widget.ToolbarItem
+	helpButton     *widget.Button
+	helpDialog     dialog.Dialog
+	helpVisible    bool
 }
 
 func (p *PicsortUI) ShowProgressDialog(msg string) {
@@ -52,6 +49,29 @@ func (p *PicsortUI) ShowProgressDialog(msg string) {
 		p.progressDialog.Show()
 		p.progress.Show()
 		_ = p.progressValue.Set(0)
+	})
+}
+
+func (p *PicsortUI) toggleHelp() {
+	if p.helpVisible {
+		p.hideHelpDialog()
+		return
+	}
+
+	p.showHelpDialog()
+}
+
+func (p *PicsortUI) showHelpDialog() {
+	fyne.Do(func() {
+		p.helpDialog.Show()
+		p.helpVisible = true
+	})
+}
+
+func (p *PicsortUI) hideHelpDialog() {
+	fyne.Do(func() {
+		p.helpDialog.Dismiss()
+		p.helpVisible = false
 	})
 }
 
@@ -162,7 +182,7 @@ func (p *PicsortUI) initBins() {
 func (p *PicsortUI) NewBin() {
 	if len(p.binGrids) <= 9 {
 		binCount := len(p.binGrids)
-		binGrid := NewThumbnailGrid(binCount, p.controller)
+		binGrid := NewThumbnailGrid(binCount, p.win, p.controller)
 		p.binGrids[binCount] = binGrid
 		p.tabs.Append(container.NewTabItem("", p.binGrids[binCount]))
 		p.setTabTitle(binCount)
@@ -227,6 +247,20 @@ func (p *PicsortUI) setGlobalKeyBinds() {
 			newOffset = 0.0
 		}
 		p.mainContent.SetOffset(newOffset)
+	})
+
+	p.win.Canvas().SetOnTypedKey(func(e *fyne.KeyEvent) {
+		switch e.Name {
+		case fyne.KeyF1:
+			p.toggleHelp()
+		}
+	})
+
+	p.win.Canvas().SetOnTypedRune(func(r rune) {
+		switch r {
+		case 63:
+			p.toggleHelp()
+		}
 	})
 }
 

@@ -6,6 +6,7 @@ import (
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 )
@@ -20,9 +21,14 @@ func newURLToolbarAction(a fyne.App, icon fyne.Resource, urlStr string) widget.T
 func (p *PicsortUI) setTopBar() {
 	openDataSetButton := widget.NewButton("Open dataset", p.openFolderDialog)
 	exportButton := widget.NewButton("Export", func() {})
-	helpButton := widget.NewButtonWithIcon("", theme.HelpIcon(), func() {})
+	c := newHelpDialogContent()
+	p.helpDialog = dialog.NewCustom("Help", "Close", c, p.win)
+	p.helpDialog.Resize(fyne.NewSize(450, 500))
+	p.helpButton = widget.NewButtonWithIcon("", theme.HelpIcon(), func() {
+		p.helpDialog.Show()
+	})
 
-	p.topBar = container.NewBorder(nil, nil, nil, helpButton,
+	p.topBar = container.NewBorder(nil, nil, nil, p.helpButton,
 		container.NewHBox(openDataSetButton, exportButton),
 	)
 }

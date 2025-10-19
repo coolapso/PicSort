@@ -9,8 +9,30 @@ import (
 	"image/color"
 )
 
+const (
+	titleText      = "Welcome to Picsort!"
+	welcomeMessage = "Load your pictures to get started!\n\nYou can press ? or F1 at any time to see the help menu."
+)
+
 func shiftPressed() bool {
 	return fyne.CurrentApp().Driver().(desktop.Driver).CurrentKeyModifiers() == 1
+}
+
+func translateKey(key *fyne.KeyEvent) *fyne.KeyEvent {
+	translatedKey := *key
+	switch key.Name {
+	case fyne.KeyH:
+		translatedKey.Name = fyne.KeyLeft
+	case fyne.KeyJ:
+		translatedKey.Name = fyne.KeyDown
+	case fyne.KeyK:
+		translatedKey.Name = fyne.KeyUp
+	case fyne.KeyL:
+		translatedKey.Name = fyne.KeyRight
+	default:
+	}
+
+	return &translatedKey
 }
 
 func newWelcomeScreen() *fyne.Container {
@@ -27,4 +49,36 @@ func newWelcomeScreen() *fyne.Container {
 	welcomeText.TextStyle.Monospace = true
 
 	return container.NewCenter(container.NewVBox(logo, titleText, welcomeText))
+}
+
+func newHelpDialogContent() fyne.CanvasObject {
+	grid := container.NewGridWithColumns(2)
+	addRow := func(key, description string) {
+		keyLabel := widget.NewLabel(key)
+		keyLabel.TextStyle.Bold = true
+		grid.Add(keyLabel)
+		grid.Add(widget.NewLabel(description))
+	}
+
+	addRow("?, F1", "Show this help dialog")
+	addRow("Ctrl+O", "Open dataset folder")
+	addRow("Ctrl+E", "Export dataset")
+	addRow("Ctrl+T", "Add a new bin")
+	addRow("Ctrl+W", "Remove the last bin")
+	addRow("Ctrl+0-9", "Switch to the corresponding bin tab")
+	addRow("Ctrl+H/L", "Adjust preview panel size")
+	addRow("H,J,K,L / Arrow Keys", "Navigate through images")
+	addRow("Space", "Select / Unselect image")
+	addRow("Shift + H,J,K,L / Arrow Keys", "Select multiple images")
+	addRow("0 - 9", "Move selected image(s) to bin")
+
+	globalTitle := widget.NewLabel("Picsort keyboard shortcuts")
+	globalTitle.TextStyle.Bold = true
+	imageGridTitle := widget.NewLabel("Image Grid")
+	imageGridTitle.TextStyle.Bold = true
+
+	return container.NewVBox(
+		globalTitle,
+		grid,
+	)
 }

@@ -19,6 +19,7 @@ type ThumbnailProvider interface {
 
 type ThumbnailGridWrap struct {
 	widget.GridWrap
+	w               fyne.Window
 	id              int
 	selectionAnchor widget.GridWrapItemID
 	selectedIDs     []widget.GridWrapItemID
@@ -31,19 +32,18 @@ type ThumbnailGridWrap struct {
 }
 
 func (g *ThumbnailGridWrap) TypedKey(key *fyne.KeyEvent) {
-	translatedKey := *key
-	switch translatedKey.Name {
+	key = translateKey(key)
+	switch key.Name {
 	case fyne.KeySpace:
 		g.onSelected(g.currentID)
-		return
-	case fyne.KeyH:
-		translatedKey.Name = fyne.KeyLeft
-	case fyne.KeyJ:
-		translatedKey.Name = fyne.KeyDown
-	case fyne.KeyK:
-		translatedKey.Name = fyne.KeyUp
-	case fyne.KeyL:
-		translatedKey.Name = fyne.KeyRight
+	case fyne.KeyLeft:
+		g.GridWrap.TypedKey(key)
+	case fyne.KeyRight:
+		g.GridWrap.TypedKey(key)
+	case fyne.KeyDown:
+		g.GridWrap.TypedKey(key)
+	case fyne.KeyUp:
+		g.GridWrap.TypedKey(key)
 	case fyne.KeyG:
 		if g.isDoublePress(key) {
 			if shiftPressed() {
@@ -54,49 +54,43 @@ func (g *ThumbnailGridWrap) TypedKey(key *fyne.KeyEvent) {
 			}
 			return
 		}
-		return
 	case fyne.KeyHome:
 		g.ScrollToTop()
-		return
 	case fyne.KeyEnd:
 		g.ScrollToBottom()
-		return
 	case fyne.KeyEscape:
 		g.unselectAll()
-		return
 	case fyne.Key1:
 		g.MoveImages(1)
-		return
 	case fyne.Key2:
 		g.MoveImages(2)
-		return
 	case fyne.Key3:
 		g.MoveImages(3)
-		return
 	case fyne.Key4:
 		g.MoveImages(4)
-		return
 	case fyne.Key5:
 		g.MoveImages(5)
-		return
 	case fyne.Key6:
 		g.MoveImages(6)
-		return
 	case fyne.Key7:
 		g.MoveImages(7)
-		return
 	case fyne.Key8:
 		g.MoveImages(8)
-		return
 	case fyne.Key9:
 		g.MoveImages(9)
-		return
 	case fyne.Key0:
 		g.MoveImages(0)
-		return
+	default:
+		if g.w.Canvas().OnTypedKey() != nil {
+			g.w.Canvas().OnTypedKey()(key)
+		}
 	}
+}
 
-	g.GridWrap.TypedKey(&translatedKey)
+func (g *ThumbnailGridWrap) TypedRune(r rune) {
+	if g.w.Canvas().OnTypedRune() != nil {
+		g.w.Canvas().OnTypedRune()(r)
+	}
 }
 
 func (g *ThumbnailGridWrap) isDoublePress(key *fyne.KeyEvent) bool {
@@ -235,8 +229,9 @@ func (g *ThumbnailGridWrap) MoveImages(destID int) {
 	g.dataProvider.UpdatePreview(g.imagePaths[g.currentID+1])
 }
 
-func NewThumbnailGrid(id int, d ThumbnailProvider) *ThumbnailGridWrap {
+func NewThumbnailGrid(id int, w fyne.Window, d ThumbnailProvider) *ThumbnailGridWrap {
 	grid := &ThumbnailGridWrap{
+		w:               w,
 		dataProvider:    d,
 		selectionAnchor: -1,
 		selectedIDs:     []widget.GridWrapItemID{},
