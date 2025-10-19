@@ -42,6 +42,7 @@ func (p *PicsortUI) setBottomBar() {
 		p.addBinButton,
 		p.rmBinButton,
 		widget.NewToolbarSpacer(),
+		newURLToolbarAction(p.app, Icons["logo"], "https://picsort.coolapso.sh"),
 		newURLToolbarAction(p.app, Icons["sponsor"], "https://github.com/sponsors/coolapso"),
 		newURLToolbarAction(p.app, Icons["bmc"], "https://buymeacoffee.com"),
 		newURLToolbarAction(p.app, Icons["github"], "https://github.com/coolapso/picsort"),

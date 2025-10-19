@@ -27,6 +27,7 @@ type PicsortUI struct {
 	win        fyne.Window
 	controller *controller.Controller
 
+	welcomeScreen  *fyne.Container
 	tabs           *container.AppTabs
 	binGrids       map[int]*ThumbnailGridWrap
 	progress       *widget.ProgressBar
@@ -230,13 +231,15 @@ func (p *PicsortUI) setGlobalKeyBinds() {
 }
 
 func (p *PicsortUI) LoadContent() {
-	p.ReloadAll()
-	p.HideProgressDialog()
-	p.mainContent.Show()
-	p.addBinButton.ToolbarObject().Show()
-	p.rmBinButton.ToolbarObject().Show()
-	p.GoToTab(0)
-	p.mainStack.Objects[0].Hide()
+	fyne.Do(func() {
+		p.ReloadAll()
+		p.HideProgressDialog()
+		p.mainContent.Show()
+		p.addBinButton.ToolbarObject().Show()
+		p.rmBinButton.ToolbarObject().Show()
+		p.GoToTab(0)
+		p.mainStack.Objects[0].Hide()
+	})
 }
 
 func New(a fyne.App, w fyne.Window) {
@@ -273,12 +276,12 @@ func New(a fyne.App, w fyne.Window) {
 	p.preview.FillMode = canvas.ImageFillContain
 	p.previewCard = widget.NewCard("Preview", "", p.preview)
 
-	welcome := newWelcomeScreen()
+	p.welcomeScreen = newWelcomeScreen()
 
 	p.mainContent = container.NewHSplit(p.tabs, p.previewCard)
 	p.mainContent.SetOffset(0.3)
 
-	p.mainStack = container.NewStack(welcome, p.mainContent)
+	p.mainStack = container.NewStack(p.welcomeScreen, p.mainContent)
 	p.mainContent.Hidden = true
 
 	p.win.SetContent(container.NewBorder(p.topBar, p.bottomBar, nil, nil, p.mainStack))
