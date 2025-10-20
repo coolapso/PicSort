@@ -1,12 +1,15 @@
 package ui
 
 import (
+	"image/color"
+	"log"
+	"net/url"
+
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/driver/desktop"
 	"fyne.io/fyne/v2/widget"
-	"image/color"
 )
 
 const (
@@ -60,6 +63,14 @@ func newHelpDialogContent() fyne.CanvasObject {
 		grid.Add(widget.NewLabel(description))
 	}
 
+	ghLink, err := url.Parse("https://github.com/coolapso/picsort")
+	if err != nil {
+		log.Println("Error parsing URL for help dialog:", err)
+	}
+
+	link := widget.NewHyperlink("Chekcout our Github repository", ghLink)
+	link.Alignment = fyne.TextAlignCenter
+
 	addRow("?, F1", "Show this help dialog")
 	addRow("Ctrl+O", "Open dataset folder")
 	addRow("Ctrl+E", "Export dataset")
@@ -70,6 +81,7 @@ func newHelpDialogContent() fyne.CanvasObject {
 	addRow("H,J,K,L / Arrow Keys", "Navigate through images")
 	addRow("Space", "Select / Unselect image")
 	addRow("Shift + H,J,K,L / Arrow Keys", "Select multiple images")
+	addRow("Escape", "Unselect all selected images")
 	addRow("0 - 9", "Move selected image(s) to bin")
 
 	globalTitle := widget.NewLabel("Picsort keyboard shortcuts")
@@ -77,8 +89,13 @@ func newHelpDialogContent() fyne.CanvasObject {
 	imageGridTitle := widget.NewLabel("Image Grid")
 	imageGridTitle.TextStyle.Bold = true
 
+	moreDetailsText := widget.NewLabel("Not what you're looking for?")
+	moreDetailsText.TextStyle.Bold = true
+	more := container.NewHBox(moreDetailsText, link)
+
 	return container.NewVBox(
 		globalTitle,
 		grid,
+		more,
 	)
 }
