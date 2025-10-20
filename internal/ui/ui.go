@@ -52,6 +52,12 @@ func (p *PicsortUI) ShowProgressDialog(msg string) {
 	})
 }
 
+func (p *PicsortUI) HideProgressDialog() {
+	fyne.Do(func() {
+		p.progressDialog.Hide()
+	})
+}
+
 func (p *PicsortUI) toggleHelp() {
 	if p.helpVisible {
 		p.hideHelpDialog()
@@ -82,12 +88,6 @@ func (p *PicsortUI) SetProgress(progress float64, f string) {
 	})
 }
 
-func (p *PicsortUI) HideProgressDialog() {
-	fyne.Do(func() {
-		p.progressDialog.Hide()
-	})
-}
-
 func (p *PicsortUI) ShowErrorDialog(err error) {
 	fyne.Do(func() {
 		d := dialog.NewError(err, p.win)
@@ -98,7 +98,7 @@ func (p *PicsortUI) ShowErrorDialog(err error) {
 	})
 }
 
-func (p *PicsortUI) openFolderDialog() {
+func (p *PicsortUI) openDataSetDialog() {
 	folderDialog := dialog.NewFolderOpen(func(uri fyne.ListableURI, err error) {
 		if err != nil {
 			log.Println("Error opening folder dialog:", err)
@@ -109,7 +109,22 @@ func (p *PicsortUI) openFolderDialog() {
 		}
 		go p.controller.LoadDataset(uri.Path())
 	}, p.win)
-	folderDialog.Resize(fyne.NewSize(800, 600)) // Set the size here
+	folderDialog.Resize(fyne.NewSize(800, 600))
+	folderDialog.Show()
+}
+
+func (p *PicsortUI) exportDatasetDialog() {
+	folderDialog := dialog.NewFolderOpen(func(uri fyne.ListableURI, err error) {
+		if err != nil {
+			log.Println("Error opening folder dialog:", err)
+			return
+		}
+		if uri == nil {
+			return
+		}
+		go p.controller.ExportDataset(uri.Path())
+	}, p.win)
+	folderDialog.Resize(fyne.NewSize(800, 600))
 	folderDialog.Show()
 }
 
@@ -216,7 +231,12 @@ func (p *PicsortUI) setGlobalKeyBinds() {
 
 	ctrlO := &desktop.CustomShortcut{KeyName: fyne.KeyO, Modifier: fyne.KeyModifierControl}
 	p.win.Canvas().AddShortcut(ctrlO, func(s fyne.Shortcut) {
-		p.openFolderDialog()
+		p.openDataSetDialog()
+	})
+
+	ctrlE := &desktop.CustomShortcut{KeyName: fyne.KeyE, Modifier: fyne.KeyModifierControl}
+	p.win.Canvas().AddShortcut(ctrlE, func(s fyne.Shortcut) {
+		p.exportDatasetDialog()
 	})
 
 	addBin := &desktop.CustomShortcut{KeyName: fyne.KeyT, Modifier: fyne.KeyModifierControl}
