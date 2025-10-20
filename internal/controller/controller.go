@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"errors"
 	"fmt"
 	"image"
 	"log"
@@ -15,22 +16,28 @@ import (
 	"github.com/nfnt/resize"
 )
 
+var (
+	errInvalidDestination = errors.New("cannot export dataset to the same location, please choose a different destination")
+)
+
 type CoreUI interface {
 	ShowProgressDialog(msg string)
 	SetProgress(progress float64, f string)
 	ReloadBin(id int)
 	ShowErrorDialog(err error)
+	HideProgressDialog()
 	UpdatePreview(i image.Image, path string)
 	GetBinCount() int
 	LoadContent()
 }
 
 type Controller struct {
-	ui         CoreUI
-	db         *database.DB
-	imageCache map[string]database.CachedImage
-	newCached  bool
-	cacheMutex *sync.Mutex
+	ui          CoreUI
+	db          *database.DB
+	datasetRoot string
+	imageCache  map[string]database.CachedImage
+	newCached   bool
+	cacheMutex  *sync.Mutex
 
 	wg   *sync.WaitGroup
 	jobs chan string
@@ -39,6 +46,7 @@ type Controller struct {
 func (c *Controller) LoadDataset(path string) {
 	c.ui.ShowProgressDialog("hang on, this may take a while...")
 	c.newCached = false
+	c.datasetRoot = path
 	if err := c.dbinit(path); err != nil {
 		c.ui.ShowErrorDialog(err)
 		return
@@ -77,6 +85,72 @@ func (c *Controller) LoadDataset(path string) {
 	}
 
 	c.ui.LoadContent()
+}
+
+func (c *Controller) ExportDataset(dest string) {
+	if dest == c.datasetRoot {
+		c.ui.ShowErrorDialog(errInvalidDestination)
+		return
+	}
+	c.ui.ShowProgressDialog("hang on, this may take a while...")
+	binCount := c.ui.GetBinCount()
+	datasetRoot := filepath.Join(dest, "dataset_export")
+	if err := os.Mkdir(datasetRoot, 0755); err != nil {
+		if !os.IsExist(err) {
+			c.ui.ShowErrorDialog(err)
+			return
+		}
+	}
+
+	for i := range binCount {
+		imgPaths, err := c.db.GetImagePaths(i)
+		if err != nil {
+			log.Println("error getting image paths:", err)
+			c.ui.ShowErrorDialog(err)
+			continue
+		}
+		c.copyImages(imgPaths, datasetRoot, i)
+	}
+
+	c.ui.HideProgressDialog()
+}
+
+func (c *Controller) copyImages(imgPaths []string, datasetRoot string, binID int) {
+	total := float64(len(imgPaths))
+	var copiedCount int64
+	var failedCopy []string
+
+	destinationDir := filepath.Join(datasetRoot, fmt.Sprint(binID))
+	err := os.Mkdir(destinationDir, 0755)
+	if err != nil && !os.IsExist(err) {
+		log.Println("Failed to create destination directory:", err)
+		return
+	}
+
+	for _, imgPath := range imgPaths {
+		var img []byte
+		fileName := filepath.Base(imgPath)
+		img, err := os.ReadFile(imgPath)
+		if err != nil {
+			log.Println("Failed to read file:", err)
+			failedCopy = append(failedCopy, fileName)
+			continue
+		}
+		destinationPath := filepath.Join(destinationDir, fileName)
+		err = os.WriteFile(destinationPath, img, 0644)
+		if err != nil {
+			log.Println("Failed to write file to destination:", err)
+			failedCopy = append(failedCopy, fileName)
+			continue
+		}
+		atomic.AddInt64(&copiedCount, 1)
+		progress := float64(atomic.LoadInt64(&copiedCount)) / total
+		c.ui.SetProgress(progress, fmt.Sprintf("bin %d/%s", binID, fileName))
+	}
+
+	if len(failedCopy) > 0 {
+		c.ui.ShowErrorDialog(fmt.Errorf("failed to copy %d files, check logfile for more details", len(failedCopy)))
+	}
 }
 
 func (c *Controller) dbinit(path string) error {
