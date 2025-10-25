@@ -10,7 +10,6 @@ var imageExtensions = map[string]bool{
 	".jpg":  true,
 	".jpeg": true,
 	".png":  true,
-	".gif":  true,
 	".bmp":  true,
 	".webp": true,
 }

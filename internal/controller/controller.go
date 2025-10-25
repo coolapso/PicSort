@@ -35,9 +35,8 @@ type Controller struct {
 	ui          CoreUI
 	db          *database.DB
 	datasetRoot string
-	imageCache  map[string]database.CachedImage
 	newCached   bool
-	cacheMutex  *sync.Mutex
+	mut         *sync.Mutex
 
 	wg   *sync.WaitGroup
 	jobs chan string
@@ -77,12 +76,6 @@ func (c *Controller) LoadDataset(path string) {
 		go c.cacheImages(total, &processedCount)
 	}
 	c.wg.Wait()
-
-	if len(c.imageCache) > 0 && c.newCached {
-		if err := c.db.SetThumbnailsBatch(c.imageCache); err != nil {
-			log.Printf("Error during batch thumbnail write: %v", err)
-		}
-	}
 
 	c.ui.LoadContent()
 }
@@ -171,10 +164,7 @@ func (c *Controller) dbinit(path string) error {
 func (c *Controller) cacheImages(total float64, processedCount *int64) {
 	defer c.wg.Done()
 	for imgPath := range c.jobs {
-		if img, found := c.getFromDBCache(imgPath); found {
-			c.cacheMutex.Lock()
-			c.imageCache[imgPath] = img
-			c.cacheMutex.Unlock()
+		if _, found := c.getFromDBCache(imgPath); found {
 			atomic.AddInt64(processedCount, 1)
 			progress := float64(atomic.LoadInt64(processedCount)) / total
 			c.ui.SetProgress(progress, filepath.Base(imgPath))
@@ -196,20 +186,18 @@ func (c *Controller) cacheImages(total float64, processedCount *int64) {
 
 		thumb := resize.Thumbnail(200, 200, img, resize.Lanczos3)
 		preview := resize.Thumbnail(800, 600, img, resize.Lanczos3)
-		c.cacheMutex.Lock()
-		c.imageCache[imgPath] = database.CachedImage{
+		c.db.SetImage(imgPath, database.CachedImage{
 			Thumbnail: thumb,
 			Preview:   preview,
-		}
-		c.cacheMutex.Unlock()
+		})
 
 		atomic.AddInt64(processedCount, 1)
 		progress := float64(atomic.LoadInt64(processedCount)) / total
 		c.ui.SetProgress(progress, filepath.Base(imgPath))
 		if !c.newCached {
-			c.cacheMutex.Lock()
+			c.mut.Lock()
 			c.newCached = true
-			c.cacheMutex.Unlock()
+			c.mut.Unlock()
 		}
 	}
 }
@@ -254,10 +242,8 @@ func (c *Controller) getFromDBCache(path string) (database.CachedImage, bool) {
 
 // Getthumbnail to be used by controller clients and retrieve the thumbnail from the in memory cache
 func (c *Controller) GetThumbnail(path string) image.Image {
-	c.cacheMutex.Lock()
-	defer c.cacheMutex.Unlock()
-	if img, ok := c.imageCache[path]; ok {
-		return img.Thumbnail
+	if img, ok := c.db.GetThumbnail(path); ok {
+		return img
 	}
 
 	return nil
@@ -265,10 +251,8 @@ func (c *Controller) GetThumbnail(path string) image.Image {
 
 // Getthumbnail to be used by controller clients and retrieve the preview from the in memory cache
 func (c *Controller) GetPreview(path string) image.Image {
-	c.cacheMutex.Lock()
-	defer c.cacheMutex.Unlock()
-	if img, ok := c.imageCache[path]; ok {
-		return img.Preview
+	if img, ok := c.db.GetPreview(path); ok {
+		return img
 	}
 
 	return nil
@@ -294,8 +278,7 @@ func (c *Controller) MoveImages(paths []string, sourceID, destID int) {
 
 func New(ui CoreUI) *Controller {
 	return &Controller{
-		ui:         ui,
-		imageCache: make(map[string]database.CachedImage),
-		cacheMutex: &sync.Mutex{},
+		ui:  ui,
+		mut: &sync.Mutex{},
 	}
 }

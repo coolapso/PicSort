@@ -124,7 +124,11 @@ func (db *DB) GetPreview(path string) (image.Image, bool) {
 	return img, true
 }
 
-func (db *DB) SetThumbnailsBatch(images map[string]CachedImage) error {
+func (db *DB) SetImage(path string, imgData CachedImage) error {
+	return db.SetImages(map[string]CachedImage{path: imgData})
+}
+
+func (db *DB) SetImages(images map[string]CachedImage) error {
 	tx, err := db.conn.Begin()
 	if err != nil {
 		return err
@@ -161,12 +165,12 @@ func (db *DB) SetThumbnailsBatch(images map[string]CachedImage) error {
 		}
 
 		if _, err := imgStmt.Exec(path, thumBuf.Bytes(), previewBuf.Bytes()); err != nil {
-			log.Printf("Error executing batch statement for %s: %v", path, err)
+			log.Printf("Error executing img batch statement for %s: %v", path, err)
 			continue
 		}
 
 		if _, err := binStmt.Exec(path, path); err != nil {
-			log.Printf("Error executing batch statement for bin %s: %v", path, err)
+			log.Printf("Error executing bin batch statement for bin %s: %v", path, err)
 			continue
 		}
 	}
