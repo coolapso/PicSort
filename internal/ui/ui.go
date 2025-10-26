@@ -138,6 +138,9 @@ func (p *PicsortUI) ReloadAll() {
 
 func (p *PicsortUI) ReloadBin(id int) {
 	fyne.Do(func() {
+		if _, ok := p.binGrids[id]; !ok {
+			return
+		}
 		p.binGrids[id].unselectAll()
 		p.binGrids[id].Reload()
 		p.setTabTitle(id)

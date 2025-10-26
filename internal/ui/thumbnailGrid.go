@@ -47,16 +47,19 @@ func (g *ThumbnailGridWrap) TypedKey(key *fyne.KeyEvent) {
 	case fyne.KeyG:
 		if g.isDoublePress(key) {
 			if shiftPressed() {
+				g.UpdateHighlight(g.Length() - 1)
 				g.ScrollToBottom()
 			} else {
+				g.UpdateHighlight(0)
 				g.ScrollToTop()
-				g.Refresh()
 			}
 			return
 		}
 	case fyne.KeyHome:
+		g.UpdateHighlight(0)
 		g.ScrollToTop()
 	case fyne.KeyEnd:
+		g.UpdateHighlight(g.Length() - 1)
 		g.ScrollToBottom()
 	case fyne.KeyEscape:
 		g.unselectAll()
@@ -227,6 +230,7 @@ func (g *ThumbnailGridWrap) MoveImages(destID int) {
 		return
 	}
 	g.dataProvider.UpdatePreview(g.imagePaths[g.currentID+1])
+	g.UpdateHighlight(g.selectionAnchor)
 }
 
 func NewThumbnailGrid(id int, w fyne.Window, d ThumbnailProvider) *ThumbnailGridWrap {
