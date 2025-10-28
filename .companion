@@ -4,36 +4,48 @@ The app is designed to be easy to use and accessible for all users, regardless o
 
 ## The UI
 
-There ar e 3 main components to the frontend: 
+There are e 3 main components to the frontend: 
 
 * Top bar, contains various helpful buttons such as, open dataset, export, help, etc.
 * The center section composed of:
-  * The left pane shows a thumbnail grid of all the pictures that are yet to be sorted. These are stotred in the backend on the `unsorted` folder.
+  * The left pane with a tabbed layout, it shows a thumbnail grid of all the pictures that are yet to be sorted by default and each tab represents a diferent folder numbered from 1 to 9. 
   * The right pane shows a preview of the selected picture. any selected pictre anywhere in the app will be shown.
-  * The bottom panes, dynamic between 1 and 10 bins, represent the folders where the pictures are going to be sorted into. this represent the dirs with the same numbering in the backend. Similar to the left pane, each bin shows a thumnail picture of the pictures in that folder. 
 * The bottom bar, contians the buttons to add / remove bins as well as the social media and contacts buttons.
+* Each thumbnail grid is a self comtained component, handling its own state and logic, it only talkes directly to the backend and never talks directly to the other components of the frontend.
 
+## The Backend
+
+The backned is composed by a sqlite database, which caches thumbnails and a normalized lower resolution version of the pictures used for the previews. The database is stored in the dataset directory as `.picsort.db`.
+
+the bakckend logic is handled by the controller and is repsonsible for handling all the OS and database interactions as well as working as mediator between the thumbnail grids the core parts of the frontend.
 
 ## The structure
 
 The application structure as of now is as follows:
+* internal/controller/*.go contains the core backend logic
 * internal/ui/*.go contains most of the logic 
 * internal/data/*.go contains the data structure for the application
 * internal/database/*.go contains the database logic
 * cmd/main.go contains the main entry point for the application
 
-## THe application
+## The application
 
-All the application is designed to be respopnsive, and as fast as possible! The focus should always be performance even if if it may cost hardware resources  and is all designed around being usable with the keyboard. The keyboard shortcuts are as follows:
+All the application is designed to be respopnsive, and as fast as possible!
+The focus should always be performance even if if it may cost hardware resources
+The first time a user loads a data set it generates the cache with thumbnails and previews, this task is multi threaded and uses all available cores, all subsequent loads should be much faster.
 
-* o: Opens the file input dialog to select pictures to upload.
-* e: Exports the current state
-* t: Focus on the unsorted pictures folder.
-* shift+1-0: Selects the corresponding bottom pane.
-* h,j,k,l: just like vim motions, these keys are used to navigate the thumbnail grid.
+
+all designed around being usable with the keyboard. The keyboard shortcuts are as follows:
+
+* Ctrl+O:: Opens the file input dialog to select pictures to upload.
+* Ctrl+Ee: Exports the current state
+* Ctrl+0-9: Selects the corresponding tab, where 0 is the "unsorted" tab.
+* h,j,k,l: just like vim motions, these keys are used to navigate the thumbnail grid, h left, j down, k up, l right.
 * Arow keys: The same as the h,j,k,l keys.
-* 1 - 0: Moves the selected picture(s) to the corresponding bottom pane.
+* Space: selects the highlighted picture, can be used to select multiple pictures
+* 1 - 0: Moves the selected picture(s) to the corresponding folder
 * shift + Movement keys: multi selection, Selects the pictures in the corresponding direction.
+* Ctrl+j & ctrl+k: Resize the panels
 * ?: Shows the help screen
 
 
