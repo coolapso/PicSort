@@ -9,6 +9,7 @@ builds:
       - linux
     goarch:
       - amd64
+    main: ./cmd/
 
 archives:
   - files:
