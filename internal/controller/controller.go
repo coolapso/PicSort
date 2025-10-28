@@ -186,6 +186,7 @@ func (c *Controller) cacheImages(total float64, processedCount *int64) {
 
 		thumb := resize.Thumbnail(200, 200, img, resize.Lanczos3)
 		preview := resize.Thumbnail(800, 600, img, resize.Lanczos3)
+		//nolint:errcheck
 		c.db.SetImage(imgPath, database.CachedImage{
 			Thumbnail: thumb,
 			Preview:   preview,

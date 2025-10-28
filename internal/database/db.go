@@ -33,6 +33,7 @@ func New(datasetPath string) (*DB, error) {
 	}
 
 	db := &DB{conn: conn}
+	//nolint:errcheck
 	if err := db.migrate(); err != nil {
 		conn.Close()
 		return nil, err
@@ -42,6 +43,7 @@ func New(datasetPath string) (*DB, error) {
 }
 
 func (db *DB) Close() {
+	//nolint:errcheck
 	db.conn.Close()
 }
 
@@ -136,9 +138,11 @@ func (db *DB) SetImages(images map[string]CachedImage) error {
 
 	imgStmt, err := tx.Prepare("INSERT OR REPLACE INTO thumbnails (path, thumbnail, preview) VALUES (?, ?, ?)")
 	if err != nil {
+		//nolint:errcheck
 		tx.Rollback()
 		return err
 	}
+	//nolint:errcheck
 	defer imgStmt.Close()
 
 	binStmt, err := tx.Prepare(`
@@ -147,9 +151,11 @@ func (db *DB) SetImages(images map[string]CachedImage) error {
 		WHERE NOT EXISTS (SELECT 1 FROM image_bins WHERE image_path = ?)
 	`)
 	if err != nil {
+		//nolint:errcheck
 		tx.Rollback()
 		return err
 	}
+	//nolint:errcheck
 	defer binStmt.Close()
 
 	for path, imgData := range images {
@@ -189,6 +195,7 @@ func (db *DB) GetImagePaths(binID int) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
+	//nolint:errcheck
 	defer rows.Close()
 
 	var paths []string
@@ -220,9 +227,11 @@ func (db *DB) UpdateImages(paths []string, sourceID, destID int) error {
 
 	stmt, err := tx.Prepare("UPDATE image_bins SET bin_id = ? WHERE image_path = ? AND bin_id = ?")
 	if err != nil {
+		//nolint:errcheck
 		tx.Rollback()
 		return err
 	}
+	//nolint:errcheck
 	defer stmt.Close()
 
 	for _, path := range paths {
@@ -242,9 +251,11 @@ func (db *DB) AddImagesToBin(paths []string, destID int) error {
 
 	stmt, err := tx.Prepare("INSERT OR IGNORE INTO image_bins (image_path, bin_id) VALUES (?, ?)")
 	if err != nil {
+		//nolint:errcheck
 		tx.Rollback()
 		return err
 	}
+	//nolint:errcheck
 	defer stmt.Close()
 
 	for _, path := range paths {
