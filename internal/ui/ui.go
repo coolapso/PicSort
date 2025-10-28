@@ -17,6 +17,7 @@ import (
 	"github.com/coolapso/picsort/internal/controller"
 )
 
+
 type PicsortUI struct {
 	app        fyne.App
 	win        fyne.Window
