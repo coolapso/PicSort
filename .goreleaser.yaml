@@ -1,0 +1,46 @@
+# .goreleaser.yaml
+builds:
+  - binary: picsort
+    flags:
+      - -tags wayland
+    ldflags:
+      - -X github.com/coolapso/picsort/internal/ui.Version={{.Version}}
+    goos:
+      - linux
+    goarch:
+      - amd64
+
+archives:
+  - files:
+      - build/picsort.desktop
+      - media/logo.png
+aurs:
+  - name: picsort-bin
+    homepage: "https://github.com/coolapso/picsort"
+    description: "post to multiple social networks simultaneously from your CLI"
+    maintainers:
+      - "coolapso <coolapso@coolapso.tech>"
+
+    license: "MIT"
+    private_key: "{{ .Env.AUR_KEY }}"
+    git_url: "ssh://aur@aur.archlinux.org/picsort-bin.git"
+    skip_upload: auto
+
+    package: |-
+      # bin
+      install -Dm755 picsort "$pkgdir/usr/bin/picsort"
+
+      # Desktop
+      install -Dm644 ./build/picsort.desktop "$pkgdir/usr/share/applications/picsort.desktop"
+
+      # Icon
+      install -Dm644 ./build/logo.png "$pkgdir/usr/share/pixmaps/picsort.png"
+
+    # Git author used to commit to the repository.
+    commit_author:
+      name: goreleaserbot
+      email: bot@goreleaser.com
+
+announce:
+  discord:
+    enabled: true

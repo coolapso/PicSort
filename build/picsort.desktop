@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=picsort
+Exec=/usr/bin/picsort
+Icon=/usr/share/picsort/logo.png
+Categories=Utility;
+X-AppImage-Name=bazecor
+X-AppImage-Arch=x86_64
