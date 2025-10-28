@@ -27,6 +27,8 @@ It is important to clarify that Picsort is not a replacement for general-purpose
 
 You can watch a quick demo of picsort [here](https://youtu.be/HdG0HuAClu0)
 
+[![Demo](https://img.youtube.com/vi/HdG0HuAClu0/0.jpg)](https://www.youtube.com/watch?v=HdG0HuAClu0)
+
 ### How it works
 
 when you open a dataset, picsort will generate a cache with thumbnails and previews, this task is multi threaded and uses all available cores, once the cache is generated, the subsequent loads of your dataset should be significantly faster. All operations are then done using the cache, and the original images are never touched. Upen exporting picsort will copy the images from the original location to the chosen destionation and the images will be placed in a directory wit hthe correspoinding number.
