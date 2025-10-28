@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://github.com/coolapso/picsort/blob/dev/media/logo.png" width="200" >
+  <img src="https://github.com/coolapso/picsort/blob/main/media/logo.png" width="200" >
 </p>
 
 # picsort
