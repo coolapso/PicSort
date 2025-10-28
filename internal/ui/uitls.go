@@ -17,6 +17,8 @@ const (
 	welcomeMessage = "Load your pictures to get started!\n\nYou can press ? or F1 at any time to see the help menu."
 )
 
+var Version = "dev"
+
 func shiftPressed() bool {
 	return fyne.CurrentApp().Driver().(desktop.Driver).CurrentKeyModifiers() == 1
 }
@@ -50,8 +52,10 @@ func newWelcomeScreen() *fyne.Container {
 	welcomeText := widget.NewLabel(welcomeMessage)
 	welcomeText.Alignment = fyne.TextAlignCenter
 	welcomeText.TextStyle.Monospace = true
+	versionText := canvas.NewText(Version, &color.Gray{Y: 0xaa})
+	versionText.Alignment = fyne.TextAlignCenter
 
-	return container.NewCenter(container.NewVBox(logo, titleText, welcomeText))
+	return container.NewCenter(container.NewVBox(logo, titleText, welcomeText, versionText))
 }
 
 func newHelpDialogContent() fyne.CanvasObject {
