@@ -55,3 +55,74 @@ At any time, press `?` to view the help menu with all available keybindings.
 Thank you for checking out Picsort. I hope you find it useful!
 
 ### How to install
+
+Picsort is simple to install and there are a few ways to do it, more ways to install can be added in the future if there's interest for it, pease let me know!
+
+#### Debian based distros
+
+Grab the debian package from the [releases page](https://github.com/coolapso/PicSort/releases) and install it with `sudo apt install ./picsort_1.1.0_amd64.deb`
+
+#### RPM based distros
+
+Grab the rpm package from the [releases page](https://github.com/coolapso/PicSort/releases) and install it with `sudo dnf install picsort-1.1.0-1.x86_64.rpm`
+
+#### Arch based distros (AUR)
+
+There's a arch linux AUR package available: 
+
+```bash
+yay -S picsort-bin
+```
+
+#### Install script
+
+> [!WARNING] 
+> Please note that curl to bash is not the most secure way to install any project. Please make sure you understand and trust the [install script](https://github.com/coolapso/picsort/blob/main/build/install.sh) before running it.
+
+**Latest version**
+```bash
+curl -L https://coolapso.github.io/PicSort/install.sh | bash
+```
+
+**Specific version**
+```bash
+curl -L https://coolapso.github.io/PicSort/install.sh | VERSION="v1.1.0" bash
+```
+#### Manually
+
+Picsort is just a binary, and ther's actually no real need for instalation. 
+all the AUR package and install script do is to place picsort in your path and adding a icon and a .desktop entry, but if you want you can just grab the binary from the [releases page](https://github.com/coolapso/PicSort/releases) and just run it
+
+```bash
+VERSION=$(curl -s "https://api.github.com/repos/coolapso/picsort/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+curl -LO https://github.com/coolapso/picsort/releases/download/$VERSION/PicSort_"${VERSION:1}"_linux_amd64.tar.gz
+tar -xzf PicSort_${VERSION:1}_linux_amd64.tar.gz picsort
+./picsrot
+```
+
+#### Go Package
+
+it is also possible to install it with go 
+
+**Latest version**
+```bash
+go install github.com/coolapso/picsort
+```
+
+**Specific version**
+```bash
+go install github.com/coolapso/picsort@v0.1.3
+```
+
+### How to uninstall
+
+To uninstall you just uinstall with your package manager, ir if you used the install script you can use the uninstall script: 
+
+```bash
+curl -L https://coolapso.github.io/PicSort/uninstall.sh | bash
+```
+
+> [!WARNING] 
+> Again, plaese make sure you understand and trust the [uninstall script](https://github.com/coolapso/picsort/blob/main/build/uninstall.sh) before running it. The script is pretty simple you can just run the commands yourself!
+
+
