@@ -2,7 +2,7 @@
 Type=Application
 Name=picsort
 Exec=/usr/bin/picsort
-Icon=/usr/share/pixmaps/logo.png
+Icon=/usr/share/pixmaps/picsort.png
 Categories=Utility;
 X-AppImage-Name=bazecor
 X-AppImage-Arch=x86_64
