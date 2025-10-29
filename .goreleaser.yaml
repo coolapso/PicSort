@@ -18,7 +18,7 @@ archives:
 aurs:
   - name: picsort-bin
     homepage: "https://github.com/coolapso/picsort"
-    description: "post to multiple social networks simultaneously from your CLI"
+    description: "PicSort is a simple tool to sort your pictures using only your keyboard"
     maintainers:
       - "coolapso <coolapso@coolapso.tech>"
 
