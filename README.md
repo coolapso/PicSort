@@ -112,20 +112,6 @@ tar -xzf PicSort_${VERSION:1}_linux_amd64.tar.gz picsort
 ./picsrot
 ```
 
-#### Go Package
-
-it is also possible to install it with go 
-
-**Latest version**
-```bash
-go install github.com/coolapso/picsort
-```
-
-**Specific version**
-```bash
-go install github.com/coolapso/picsort@v0.1.3
-```
-
 ### How to uninstall
 
 To uninstall you just uinstall with your package manager, ir if you used the install script you can use the uninstall script: 
