@@ -42,6 +42,20 @@ aurs:
       name: goreleaserbot
       email: bot@goreleaser.com
 
+nfpms:
+  - homepage: "https://picsort.cooolapso.sh"
+    maintainer: "coolapso <coolapso@coolapso.tech>"
+    description: "PicSort is a simple tool to sort your pictures using only your keyboard"
+    license: "MIT"
+    formats:
+      - deb
+      - rpm
+    contents:
+      - src: build/picsort.desktop
+        dst: /usr/share/applications/picsort.desktop
+      - src: media/logo.png
+        dst: /usr/share/pixmaps/picsort.png
+
 announce:
   discord:
     enabled: true

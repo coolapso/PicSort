@@ -4,5 +4,5 @@ Name=picsort
 Exec=/usr/bin/picsort
 Icon=/usr/share/pixmaps/picsort.png
 Categories=Utility;
-X-AppImage-Name=bazecor
+X-AppImage-Name=picsort
 X-AppImage-Arch=x86_64
