@@ -10,7 +10,7 @@
 
 keyboard-driven tool for sorting images into folders.
 
-Picsort is a desktop application designed to help you rapidly organize large sets of pictures into different folders, primarily using your keyboard. While it was created to assist with sorting image datasets for training computer vision models, it's versatile enough for any large-scale photo organization task.
+Picsort is a desktop application designed to help you rapidly organize and classify large sets of pictures, primarily using your keyboard. While it was created to assist with sorting image datasets for training computer vision models, it's versatile enough for any large-scale photo organization task.
 
 It is important to clarify that Picsort is not a replacement for general-purpose gallery or photo management tools. Its sole mission is to make the sorting process as fast and ergonomic as possible.
 
