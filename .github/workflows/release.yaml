@@ -11,7 +11,8 @@ jobs:
 
   release:
     needs: tests
-    runs-on: ubuntu-latest
+    # runining on the oldest possible lts to try to get most compatibility with users systems
+    runs-on: ubuntu-22.04
     permissions:
       contents: write
     steps:
