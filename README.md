@@ -22,6 +22,18 @@ It is important to clarify that Picsort is not a replacement for general-purpose
 *   **Non-Destructive**: Your original images are sacred. Picsort never modifies them. It reads them to create a cache and copies them to your chosen destination upon export.
 *   **Simple UI**: The UI aims to be as simple ans self explanatory as possible without much going on!
 
+### Why I created Picsort?
+
+I live in the Arctic Circle, where the Northern Lights are frequently visible. I set up a 24/7 live stream of the sky, both as an early warning system for when the aurora is active and to share the view with everyone.
+
+As part of this project, I wanted to connect a computer vision model to the video feed to automatically detect auroral activity and send notifications. However, I quickly ran into two problems:
+
+1.  There were no pre-trained models for this, which meant I had to train my own.
+2.  Training a model requires a large, well-organized dataset of images. Getting the dataset right involves frequent sorting, tweaking, and updating.
+
+I tried to manage my images with traditional file explorers, Darktable, and many other tools, but none of them felt efficient enough for the task. This led me down a bit of a yak-shaving journey, and Picsort was born!
+
+if you want to check out the live stream you can find it both on [youtube](https://youtube.com/@thearcticskies) and on [twitch](https://twitch.tv/thearcticskies)
 
 ## How to use picsort
 
