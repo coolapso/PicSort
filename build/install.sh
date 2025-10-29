@@ -38,6 +38,13 @@ if ! curl -LO "$FILE_URL"; then
   exit 1
 fi
 
+# Create a temporary install dir
+if [[ ! -d picsort-install ]]; then
+  mkdir picsort-install
+fi
+mv "$FILE" picsort-install
+cd picsort-install || exit
+
 # Extract and install
 if ! tar xzf "$FILE"; then
   echo "Failed to extract $FILE"
@@ -54,20 +61,22 @@ if ! mv picsort "$INSTALL_DIR"; then
   exit 1
 fi
 
-if ! mv picsort "$DESKTOP_DIR"; then
-  echo "Failed to move picsort to $DESKTOP_DIR"
+## Not installing picsort via package manager, update the
+## desktop file to execute the binary from /usr/local/bin
+sed -i 's|usr/bin/|usr/local/bin/|' build/picsort.desktop
+
+if ! mv build/picsort.desktop "$DESKTOP_DIR"; then
+  echo "Failed to move picsort desktop file to $DESKTOP_DIR"
   exit 1
 fi
 
-if ! mv logo.png "$ICON_DIR"; then
+if ! mv media/logo.png "$ICON_DIR/picsort.png"; then
   echo "Failed to move logo.png to $ICON_DIR"
   exit 1
 fi
 
 # Cleanup
-if ! rm "$FILE"; then
-  echo "Failed to remove $FILE"
-  exit 1
-fi
+cd ../ || exit
+rm -rf picsort-install
 
 echo "Installation of $REPO version $VERSION complete."
