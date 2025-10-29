@@ -2,7 +2,7 @@
 builds:
   - binary: picsort
     flags:
-      - -tags wayland
+      - -tags=wayland
     ldflags:
       - -X github.com/coolapso/picsort/internal/ui.Version={{.Version}}
     goos:
