@@ -82,7 +82,7 @@ jobs:
           echo "ARCHIVE_NAME=$name" >> $GITHUB_ENV
 
       - name: archive
-        run: zip -j ${{ env.ARCHIVE_NAME }} .\cmd\picsort.exe
+        run: zip -j ${{ env.ARCHIVE_NAME }} ./cmd/picsort.exe
 
       - name: Add archive to release
         run: gh release upload ${{ env.VERSION }} ${{ env.ARCHIVE_NAME }}
@@ -124,7 +124,7 @@ jobs:
           echo "ARCHIVE_NAME=$name" >> $GITHUB_ENV
 
       - name: archive
-        run: tar -czvf ${{ env.TAR_NAME }} picsort.app/
+        run: tar -czvf ${{ env.ARCHIVE_NAME }} picsort.app/
 
       - name: Add archive to release
         run: gh release upload ${{ env.VERSION }} ${{ env.ARCHIVE_NAME }}
