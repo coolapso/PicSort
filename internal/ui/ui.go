@@ -17,6 +17,8 @@ import (
 	"github.com/coolapso/picsort/internal/controller"
 )
 
+var Version = "dev"
+
 type PicsortUI struct {
 	app        fyne.App
 	win        fyne.Window
@@ -333,7 +335,13 @@ func New(a fyne.App, w fyne.Window) {
 	p.preview.FillMode = canvas.ImageFillContain
 	p.previewCard = widget.NewCard("Preview", "", p.preview)
 
-	p.welcomeScreen = newWelcomeScreen()
+	// on linux version is built with ldflags,
+	// but for windows and mac is set from the metadata
+	v := a.Metadata().Version
+	if v == "0.0.1" {
+		v = Version
+	}
+	p.welcomeScreen = newWelcomeScreen(v)
 
 	p.mainContent = container.NewHSplit(p.tabs, p.previewCard)
 	p.mainContent.SetOffset(0.3)

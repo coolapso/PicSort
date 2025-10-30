@@ -15,6 +15,8 @@ jobs:
     runs-on: ubuntu-22.04
     permissions:
       contents: write
+    outputs:
+      version: ${{ steps.semrel.outputs.version }}
     steps:
       - name: Get dependencies
         run: |
@@ -28,6 +30,7 @@ jobs:
         with:
           go-version: ">=1.23"
       - uses: go-semantic-release/action@v1
+        id: semrel
         with:
           allow-initial-development-versions: true
           custom-arguments: "--commit-analyzer-opt patch_release_rules=fix,ref,build"
@@ -37,3 +40,91 @@ jobs:
           AUR_KEY: ${{ secrets.AUR_KEY }}
           DISCORD_WEBHOOK_ID: ${{ secrets.DISCORD_WEBHOOK_ID }}
           DISCORD_WEBHOOK_TOKEN: ${{ secrets.DISCORD_WEBHOOK_TOKEN }}
+
+  build-windows:
+    needs: release
+    if: needs.release.outputs.version != ""
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    env:
+      VERSION: ${{ needs.release.outputs.version }}
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - uses: msys2/setup-msys2@v2
+        with:
+          path-type: inherit
+          update: true
+
+      - uses: actions/checkout@v4
+
+      - name: setup go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ">=1.23"
+
+      - name: Install Dependencies
+        run: |
+          pacman -Syu && pacman --noconfirm -S git zip mingw-w64-x86_64-toolchain
+
+      - name: install fyne
+        run: go install fyne.io/tools/cmd/fyne@latest
+
+      - name: package
+        run: fyne package --app-version ${{ env.VERSION }} --os windows --release --app-id sh.coolapso.picsort -icon ..\media\logo.png --src .\cmd\ --name picsort
+
+      - name: set archive name
+        run: |
+          v = ${{ env.VERSION }}
+          name = picsort_${v//./_}_windows_amd64.zip
+          echo "ARCHIVE_NAME=$name" >> $GITHUB_ENV
+
+      - name: archive
+        run: zip -j ${{ env.ARCHIVE_NAME }} .\cmd\picsort.exe
+
+      - name: Add archive to release
+        run: gh release upload ${{ env.VERSION }} ${{ env.ARCHIVE_NAME }}
+
+  build-darwin-intel:
+    needs: release
+    if: needs.release.outputs.version != ""
+    strategy:
+      matrix:
+        os: [macos-13, macos-14]
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: write
+    env:
+      VERSION: ${{ needs.release.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: ">=1.23"
+
+      - name: Install Fyne tool
+        run: go install fyne.io/tools/cmd/fyne@latest
+
+      - name: package
+        run: fyne package --app-version ${{ env.VERSION }} --os darwin --release --app-id sh.coolapso.picsort -icon ../media/logo.png --src ./cmd/ --name picsort
+
+      - name: set archive name
+        id: set_archive_name
+        run: |
+          v = ${{ env.VERSION }}
+          os = ${{ matrix.os }}
+          name = picsort_${v//./_}_darwin_intel.tar.gz
+          if [[ os == "macos-14" ]]; then
+            name = picsort_${v//./_}_darwin_arm64.tar.gz
+          fi
+          echo "ARCHIVE_NAME=$name" >> $GITHUB_ENV
+
+      - name: archive
+        run: tar -czvf ${{ env.TAR_NAME }} picsort.app/
+
+      - name: Add archive to release
+        run: gh release upload ${{ env.VERSION }} ${{ env.ARCHIVE_NAME }}
