@@ -73,12 +73,12 @@ jobs:
         run: go install fyne.io/tools/cmd/fyne@latest
 
       - name: package
-        run: fyne package --app-version ${{ env.VERSION }} --os windows --release --app-id sh.coolapso.picsort -icon ..\media\logo.png --src .\cmd\ --name picsort
+        run: fyne package --app-version ${{ env.VERSION }} --os windows --release --app-id sh.coolapso.picsort -icon ..\media\logo.png --src cmd\ --name picsort
 
       - name: set archive name
         run: |
-          v = ${{ env.VERSION }}
-          name = picsort_${v//./_}_windows_amd64.zip
+          v=${{ env.VERSION }}
+          name=picsort_${v//./_}_windows_amd64.zip
           echo "ARCHIVE_NAME=$name" >> $GITHUB_ENV
 
       - name: archive
@@ -115,8 +115,8 @@ jobs:
       - name: set archive name
         id: set_archive_name
         run: |
-          v = ${{ env.VERSION }}
-          os = ${{ matrix.os }}
+          v=${{ env.VERSION }}
+          os=${{ matrix.os }}
           name = picsort_${v//./_}_darwin_intel.tar.gz
           if [[ os == "macos-14" ]]; then
             name = picsort_${v//./_}_darwin_arm64.tar.gz
