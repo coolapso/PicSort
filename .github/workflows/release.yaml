@@ -49,6 +49,7 @@ jobs:
       contents: write
     env:
       VERSION: ${{ needs.release.outputs.version }}
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     defaults:
       run:
         shell: msys2 {0}
@@ -98,6 +99,7 @@ jobs:
       contents: write
     env:
       VERSION: ${{ needs.release.outputs.version }}
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@v4
 
