@@ -91,10 +91,7 @@ jobs:
   build-darwin:
     needs: release
     if: needs.release.outputs.version != ''
-    strategy:
-      matrix:
-        os: [macos-14, macos-15]
-    runs-on: ${{ matrix.os }}
+    runs-on: macos-14
     permissions:
       contents: write
     env:
@@ -102,6 +99,11 @@ jobs:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@v4
+
+      - name: Set up Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
 
       - name: Set up Go
         uses: actions/setup-go@v4
@@ -118,8 +120,7 @@ jobs:
         id: set_archive_name
         run: |
           v=${{ env.VERSION }}
-          os=${{ matrix.os }}
-          name=picsort_${v//./_}_darwin_${os/-/_}_arm64.tar.gz
+          name=picsort_${v//./_}_darwin_arm64.tar.gz
           echo "ARCHIVE_NAME=$name" >> $GITHUB_ENV
 
       - name: archive
