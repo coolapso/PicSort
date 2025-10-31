@@ -66,8 +66,11 @@ At any time, press `?` to view the help menu with all available keybindings.
 
 Thank you for checking out Picsort. I hope you find it useful!
 
-### How to install
+## How to install
 
+Even though picsort is built and tested in linux it also works on windows and MacOS, check the [releases page](https://github.com/coolapso/PicSort/releases) for the latest builds. More instructions are also available below for each platform.
+
+### Linux
 Picsort is simple to install and there are a few ways to do it, more ways to install can be added in the future if there's interest for it, pease let me know!
 
 #### Debian based distros
@@ -112,7 +115,7 @@ tar -xzf PicSort_${VERSION:1}_linux_amd64.tar.gz picsort
 ./picsrot
 ```
 
-### How to uninstall
+#### How to uninstall
 
 To uninstall you just uinstall with your package manager, ir if you used the install script you can use the uninstall script: 
 
@@ -122,6 +125,23 @@ curl -L https://coolapso.github.io/PicSort/uninstall.sh | bash
 
 > [!WARNING] 
 > Again, plaese make sure you understand and trust the [uninstall script](https://github.com/coolapso/picsort/blob/main/build/uninstall.sh) before running it. The script is pretty simple you can just run the commands yourself!
+
+### Windows
+
+Picsort is available for windows, and does not require any installation. 
+just grab the latest windows build form the [releases page](https://github.com/coolapso/PicSort/releases), extract the zip archive and run the `picsort.exe` file.
+
+### MacOS
+
+For mac users you have to grab latest macos build form the [releases page](https://github.com/coolapso/PicSort/releases), extract the tar.gz archive. 
+
+If you get a warning / error about the app being damaged, that's because the app is not signed. To work around it you must remove the application from quarantine by running the following command in the terminal:
+
+```
+xattr -r -d com.apple.quarantine /path/to/picsort.app
+```
+
+
 
 
 # Contributions
