@@ -86,7 +86,7 @@ jobs:
         run: zip -j ${{ env.ARCHIVE_NAME }} ./cmd/picsort.exe
 
       - name: Add archive to release
-        run: gh release upload ${{ env.VERSION }} ${{ env.ARCHIVE_NAME }}
+        run: gh release upload v${{ env.VERSION }} ${{ env.ARCHIVE_NAME }}
 
   build-darwin-intel:
     needs: release
@@ -129,4 +129,4 @@ jobs:
         run: tar -czvf ${{ env.ARCHIVE_NAME }} picsort.app/
 
       - name: Add archive to release
-        run: gh release upload ${{ env.VERSION }} ${{ env.ARCHIVE_NAME }}
+        run: gh release upload v${{ env.VERSION }} ${{ env.ARCHIVE_NAME }}
