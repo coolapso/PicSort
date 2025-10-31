@@ -93,7 +93,7 @@ jobs:
     if: needs.release.outputs.version != ''
     strategy:
       matrix:
-        os: [macos-13, macos-14]
+        os: [macos-14, macos-15]
     runs-on: ${{ matrix.os }}
     permissions:
       contents: write
@@ -119,10 +119,7 @@ jobs:
         run: |
           v=${{ env.VERSION }}
           os=${{ matrix.os }}
-          name=picsort_${v//./_}_darwin_intel.tar.gz
-          if [[ $os == "macos-14" ]]; then
-            name=picsort_${v//./_}_darwin_arm64.tar.gz
-          fi
+          name=picsort_${v//./_}_darwin_${os/-/_}_arm64.tar.gz
           echo "ARCHIVE_NAME=$name" >> $GITHUB_ENV
 
       - name: archive
