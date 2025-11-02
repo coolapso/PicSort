@@ -1,8 +1,12 @@
 package ui
 
 import (
+	"encoding/json"
+	"fmt"
 	"image/color"
+	"io"
 	"log"
+	"net/http"
 	"net/url"
 
 	"fyne.io/fyne/v2"
@@ -10,12 +14,49 @@ import (
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/driver/desktop"
 	"fyne.io/fyne/v2/widget"
+	"golang.org/x/mod/semver"
 )
 
 const (
 	titleText      = "Welcome to Picsort!"
 	welcomeMessage = "Load your pictures to get started!\n\nYou can press ? or F1 at any time to see the help menu."
 )
+
+type ghRelease struct {
+	Version string `json:"tag_name"`
+}
+
+func getLatestRelease() ghRelease {
+	var latestRelease ghRelease
+	data, err := http.Get("https://api.github.com/repos/coolapso/picsort/releases/latest")
+	if err != nil {
+		return ghRelease{Version: "unknown"}
+	}
+	response, err := io.ReadAll(data.Body)
+	if err != nil {
+		return ghRelease{Version: "unknown"}
+	}
+
+	err = json.Unmarshal(response, &latestRelease)
+	if err != nil {
+		return ghRelease{Version: "unknown"}
+	}
+
+	return latestRelease
+}
+
+func checkNewVersion(currentVersion string) (newVersionAvailable bool, newVersion string) {
+	ghRelease := getLatestRelease()
+	if currentVersion == "dev" {
+		return false, ""
+	}
+
+	if v := semver.Compare(currentVersion, ghRelease.Version); v == 1 {
+		return true, ghRelease.Version
+	}
+
+	return false, ""
+}
 
 func shiftPressed() bool {
 	return fyne.CurrentApp().Driver().(desktop.Driver).CurrentKeyModifiers() == 1
@@ -52,8 +93,13 @@ func newWelcomeScreen(v string) *fyne.Container {
 	welcomeText.TextStyle.Monospace = true
 	versionText := canvas.NewText(v, &color.Gray{Y: 0xaa})
 	versionText.Alignment = fyne.TextAlignCenter
+	latestVersion := canvas.NewText("", &color.RGBA{R: 0x72, G: 0x2f, B: 0x37, A: 0xff})
+	latestVersion.Alignment = fyne.TextAlignCenter
+	if newVersionAvailable, newVersion := checkNewVersion(v); newVersionAvailable {
+		latestVersion.Text = fmt.Sprintf("New version available: %s", newVersion)
+	}
 
-	return container.NewCenter(container.NewVBox(logo, titleText, welcomeText, versionText))
+	return container.NewCenter(container.NewVBox(logo, titleText, welcomeText, versionText, latestVersion))
 }
 
 func newHelpDialogContent() fyne.CanvasObject {
