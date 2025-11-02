@@ -51,7 +51,7 @@ func checkNewVersion(currentVersion string) (newVersionAvailable bool, newVersio
 		return false, ""
 	}
 
-	if v := semver.Compare(currentVersion, ghRelease.Version); v == 1 {
+	if v := semver.Compare(ghRelease.Version, currentVersion); v == 1 {
 		return true, ghRelease.Version
 	}
 
