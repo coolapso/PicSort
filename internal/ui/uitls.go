@@ -102,51 +102,69 @@ func newWelcomeScreen(v string) *fyne.Container {
 	return container.NewCenter(container.NewVBox(logo, titleText, welcomeText, versionText, latestVersion))
 }
 
-func newHelpDialogContent() fyne.CanvasObject {
+func newHelpSection(shortcuts map[string]string) *fyne.Container {
 	grid := container.NewGridWithColumns(2)
-	addRow := func(key, description string) {
+	for key, description := range shortcuts {
 		keyLabel := widget.NewLabel(key)
 		keyLabel.TextStyle.Bold = true
 		grid.Add(keyLabel)
 		grid.Add(widget.NewLabel(description))
 	}
 
+	return grid
+}
+
+func newHelpDialogContent() fyne.CanvasObject {
 	ghLink, err := url.Parse("https://github.com/coolapso/picsort")
 	if err != nil {
 		log.Println("Error parsing URL for help dialog:", err)
 	}
-
-	link := widget.NewHyperlink("Chekcout our Github repository", ghLink)
+	link := widget.NewHyperlink("Checkout our Github repository", ghLink)
 	link.Alignment = fyne.TextAlignCenter
 
-	addRow("?, F1", "Show this help dialog")
-	addRow("Ctrl+O", "Open dataset folder")
-	addRow("Ctrl+E", "Export dataset")
-	addRow("Ctrl+T", "Add a new bin")
-	addRow("Ctrl+W", "Remove the last bin")
-	addRow("Ctrl+0-9", "Switch to the corresponding bin tab")
-	addRow("Ctrl+H/L", "Adjust preview panel size")
-	addRow("H,J,K,L / Arrow Keys", "Navigate through images")
-	addRow("T", "Go to the first visible image")
-	addRow("B", "Go to the last visible image")
-	addRow("M", "Go to the middle image")
-	addRow("Space", "Select / Unselect image")
-	addRow("Shift + H,J,K,L / Arrow Keys", "Select multiple images")
-	addRow("Escape", "Unselect all selected images")
-	addRow("0 - 9", "Move selected image(s) to bin")
+	globalShortcuts := map[string]string{
+		"?, F1":    "Show this help dialog",
+		"Ctrl+O":   "Open dataset folder",
+		"Ctrl+E":   "Export dataset",
+		"Ctrl+T":   "Add a new bin",
+		"Ctrl+W":   "Remove the last bin",
+		"Ctrl+0-9": "Switch to the corresponding bin tab",
+		"Ctrl+H/L": "Adjust preview panel size",
+	}
 
-	globalTitle := widget.NewLabel("Picsort keyboard shortcuts")
-	globalTitle.TextStyle.Bold = true
-	imageGridTitle := widget.NewLabel("Image Grid")
-	imageGridTitle.TextStyle.Bold = true
+	movementShortcuts := map[string]string{
+		"H,J,K,L / Arrow Keys": "Navigate through images",
+		"T":                    "Go to the first visible image",
+		"B":                    "Go to the last visible image",
+		"M":                    "Go to the middle image",
+		"MM":                   "Go to the middle of the dataset",
+		"Shift + M":            "Go to the middle of the dataset",
+		"PgDown, D":            "Scroll down to next set of images",
+		"PgUp,U":               "Scroll Up to next set of images",
+		"Home, GG":             "Go got top of the dataset",
+		"End, Shift + GG":      "Go to the bottom of the dataset",
+	}
+
+	selectionShortcuts := map[string]string{
+		"Space":                        "Select / Unselect image",
+		"Shift + H,J,K,L / Arrow Keys": "Select multiple images",
+		"Escape":                       "Unselect all selected images",
+		"0 - 9":                        "Move selected image(s) to bin",
+	}
+
+	tabs := container.NewAppTabs(
+		container.NewTabItem("Global", container.NewScroll(newHelpSection(globalShortcuts))),
+		container.NewTabItem("Movement", container.NewScroll(newHelpSection(movementShortcuts))),
+		container.NewTabItem("Selection", container.NewScroll(newHelpSection(selectionShortcuts))),
+	)
 
 	moreDetailsText := widget.NewLabel("Not what you're looking for?")
 	moreDetailsText.TextStyle.Bold = true
 	more := container.NewHBox(moreDetailsText, link)
 
-	return container.NewVBox(
-		globalTitle,
-		grid,
-		more,
-	)
+	borderContent := container.NewBorder(nil, container.NewVBox(more, widget.NewSeparator()), nil, nil, tabs)
+	sizer := canvas.NewRectangle(color.Transparent)
+	sizer.SetMinSize(fyne.NewSize(700, 400))
+
+	return container.NewStack(sizer, borderContent)
 }
