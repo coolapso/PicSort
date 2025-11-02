@@ -2,10 +2,13 @@ package ui
 
 import (
 	"image"
+	"log"
+	"math"
 	"slices"
 	"time"
 
 	"fyne.io/fyne/v2"
+	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 )
 
@@ -37,8 +40,16 @@ func (g *ThumbnailGridWrap) TypedKey(key *fyne.KeyEvent) {
 	case fyne.KeySpace:
 		g.onSelected(g.currentID)
 	case fyne.KeyLeft:
+		if shiftPressed() {
+			g.goToTop()
+			return
+		}
 		g.GridWrap.TypedKey(key)
 	case fyne.KeyRight:
+		if shiftPressed() {
+			g.goToBottom()
+			return
+		}
 		g.GridWrap.TypedKey(key)
 	case fyne.KeyDown:
 		g.GridWrap.TypedKey(key)
@@ -53,6 +64,15 @@ func (g *ThumbnailGridWrap) TypedKey(key *fyne.KeyEvent) {
 			}
 			return
 		}
+
+	case fyne.KeyM:
+		if shiftPressed() {
+			g.goToMiddle()
+			return
+		}
+	case fyne.KeyX:
+		log.Println(g.visibleItemIDs())
+		return
 	case fyne.KeyHome:
 		g.ScrollToItem(0)
 	case fyne.KeyEnd:
@@ -192,6 +212,65 @@ func (g *ThumbnailGridWrap) updateItem(i widget.GridWrapItemID, o fyne.CanvasObj
 		}
 	}
 	imgCheck.Refresh()
+}
+
+func (g *ThumbnailGridWrap) visibleItemIDs() []widget.GridWrapItemID {
+	if g.Length() == 0 {
+		return nil
+	}
+
+	template := g.CreateItem()
+	cellSize := template.MinSize()
+
+	padding := theme.Padding()
+	cellWidth := cellSize.Width + padding
+	cellHeight := cellSize.Height + padding
+
+	cols := int(g.Size().Width / cellWidth)
+	if cols == 0 {
+		cols = 1
+	}
+
+	offsetY := g.GetScrollOffset()
+	viewportBottom := offsetY + g.Size().Height
+
+	// Find the first row that is fully visible
+	firstFullRow := int(math.Ceil(float64(offsetY) / float64(cellHeight)))
+	firstVisibleItem := firstFullRow * cols
+
+	// Find the last row that is fully visible
+	lastFullRow := int(math.Floor(float64(viewportBottom)/float64(cellHeight))) - 1
+	lastVisibleItem := (lastFullRow + 1) * cols
+
+	lastVisibleItem = min(lastVisibleItem, g.Length())
+
+	var visibleIDs []widget.GridWrapItemID
+	for i := firstVisibleItem; i < lastVisibleItem; i++ {
+		if i >= 0 {
+			visibleIDs = append(visibleIDs, widget.GridWrapItemID(i))
+		}
+	}
+
+	return visibleIDs
+}
+
+func (g *ThumbnailGridWrap) goToTop() {
+	visibleItems := g.visibleItemIDs()
+	g.ScrollToItem(visibleItems[0])
+}
+
+func (g *ThumbnailGridWrap) goToBottom() {
+	visibleItems := g.visibleItemIDs()
+	g.ScrollToItem(len(visibleItems) - 1)
+}
+
+func (g *ThumbnailGridWrap) goToMiddle() {
+	visibleItems := g.visibleItemIDs()
+	if len(visibleItems)%2 == 0 {
+		g.ScrollToItem(visibleItems[len(visibleItems)/2])
+	} else {
+		g.ScrollToItem(visibleItems[len(visibleItems)/2-1])
+	}
 }
 
 func (g *ThumbnailGridWrap) MoveImages(destID int) {
