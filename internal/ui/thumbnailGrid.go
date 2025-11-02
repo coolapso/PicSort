@@ -2,7 +2,6 @@ package ui
 
 import (
 	"image"
-	"log"
 	"math"
 	"slices"
 	"time"
@@ -70,9 +69,6 @@ func (g *ThumbnailGridWrap) TypedKey(key *fyne.KeyEvent) {
 			g.goToMiddle()
 			return
 		}
-	case fyne.KeyX:
-		log.Println(g.visibleItemIDs())
-		return
 	case fyne.KeyHome:
 		g.ScrollToItem(0)
 	case fyne.KeyEnd:
