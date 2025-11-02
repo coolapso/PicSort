@@ -229,7 +229,10 @@ func (g *ThumbnailGridWrap) visibleItemIDs() []widget.GridWrapItemID {
 	firstVisibleItem := firstFullRow * cols
 
 	// Find the last row that is fully visible
-	lastFullRow := int(math.Floor(float64(viewportBottom)/float64(cellHeight))) - 1
+	lastFullRow := int(math.Floor(float64(viewportBottom) / float64(cellHeight)))
+	if offsetY == 0 {
+		lastFullRow = int(math.Floor(float64(viewportBottom)/float64(cellHeight))) - 1
+	}
 	lastVisibleItem := (lastFullRow + 1) * cols
 
 	lastVisibleItem = min(lastVisibleItem, g.Length())
@@ -251,7 +254,7 @@ func (g *ThumbnailGridWrap) goToTop() {
 
 func (g *ThumbnailGridWrap) goToBottom() {
 	visibleItems := g.visibleItemIDs()
-	g.ScrollToItem(len(visibleItems) - 1)
+	g.ScrollToItem(visibleItems[len(visibleItems)-1])
 }
 
 func (g *ThumbnailGridWrap) goToMiddle() {
