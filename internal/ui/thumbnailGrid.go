@@ -46,6 +46,12 @@ func (g *ThumbnailGridWrap) TypedKey(key *fyne.KeyEvent) {
 		g.GridWrap.TypedKey(key)
 	case fyne.KeyUp:
 		g.GridWrap.TypedKey(key)
+	case fyne.KeyPageUp, fyne.KeyU:
+		g.scrollPageUp()
+		g.goToTop()
+	case fyne.KeyPageDown, fyne.KeyD:
+		g.scrollPageDown()
+		g.goToBottom()
 	case fyne.KeyG:
 		if g.isDoublePress(key) {
 			if shiftPressed() {
@@ -245,6 +251,16 @@ func (g *ThumbnailGridWrap) visibleItemIDs() []widget.GridWrapItemID {
 	}
 
 	return visibleIDs
+}
+
+func (g *ThumbnailGridWrap) scrollPageUp() {
+	newOffset := g.GetScrollOffset() - g.Size().Height
+	g.ScrollToOffset(newOffset)
+}
+
+func (g *ThumbnailGridWrap) scrollPageDown() {
+	newOffset := g.GetScrollOffset() + g.Size().Height
+	g.ScrollToOffset(newOffset)
 }
 
 func (g *ThumbnailGridWrap) goToTop() {
