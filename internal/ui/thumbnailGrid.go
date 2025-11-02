@@ -39,16 +39,8 @@ func (g *ThumbnailGridWrap) TypedKey(key *fyne.KeyEvent) {
 	case fyne.KeySpace:
 		g.onSelected(g.currentID)
 	case fyne.KeyLeft:
-		if shiftPressed() {
-			g.goToTop()
-			return
-		}
 		g.GridWrap.TypedKey(key)
 	case fyne.KeyRight:
-		if shiftPressed() {
-			g.goToBottom()
-			return
-		}
 		g.GridWrap.TypedKey(key)
 	case fyne.KeyDown:
 		g.GridWrap.TypedKey(key)
@@ -64,11 +56,13 @@ func (g *ThumbnailGridWrap) TypedKey(key *fyne.KeyEvent) {
 			return
 		}
 
+	case fyne.KeyT:
+		g.goToTop()
+		return
+	case fyne.KeyB:
+		g.goToBottom()
 	case fyne.KeyM:
-		if shiftPressed() {
-			g.goToMiddle()
-			return
-		}
+		g.goToMiddle()
 	case fyne.KeyHome:
 		g.ScrollToItem(0)
 	case fyne.KeyEnd:
