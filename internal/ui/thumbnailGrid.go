@@ -68,6 +68,10 @@ func (g *ThumbnailGridWrap) TypedKey(key *fyne.KeyEvent) {
 	case fyne.KeyB:
 		g.goToBottom()
 	case fyne.KeyM:
+		if g.isDoublePress(key) {
+			g.ScrollToItem(len(g.imagePaths) / 2)
+			return
+		}
 		g.goToMiddle()
 	case fyne.KeyHome:
 		g.ScrollToItem(0)
