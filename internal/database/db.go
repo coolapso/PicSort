@@ -266,3 +266,28 @@ func (db *DB) AddImagesToBin(paths []string, destID int) error {
 
 	return tx.Commit()
 }
+
+// RemoveImages deletes images from the database.
+func (db *DB) RemoveImages(paths []string) error {
+	tx, err := db.conn.Begin()
+	if err != nil {
+		return err
+	}
+
+	stmt, err := tx.Prepare("DELETE FROM thumbnails WHERE path = ?")
+	if err != nil {
+		//nolint:errcheck
+		tx.Rollback()
+		return err
+	}
+	//nolint:errcheck
+	defer stmt.Close()
+
+	for _, path := range paths {
+		if _, err := stmt.Exec(path); err != nil {
+			log.Printf("Error executing batch delete for %s: %v", path, err)
+		}
+	}
+
+	return tx.Commit()
+}
