@@ -40,77 +40,6 @@ type Controller struct {
 	jobs chan string
 }
 
-func (c *Controller) LoadDataset(path string) {
-	c.ui.ShowProgressDialog("hang on, this may take a while...")
-	c.newCached = false
-	c.datasetRoot = path
-	if err := c.dbinit(path); err != nil {
-		c.ui.ShowErrorDialog(err)
-		return
-	}
-
-	d, err := data.NewDataset(path)
-	if err != nil {
-		c.ui.ShowErrorDialog(err)
-		return
-	}
-
-	imagePaths := d.Images
-
-	total := float64(len(imagePaths))
-	var processedCount int64
-
-	c.jobs = make(chan string, len(imagePaths))
-	for _, p := range imagePaths {
-		c.jobs <- p
-	}
-	close(c.jobs)
-
-	c.wg = &sync.WaitGroup{}
-	numWorkers := runtime.NumCPU()
-	c.wg.Add(numWorkers)
-
-	for range numWorkers {
-		go c.cacheImages(total, &processedCount)
-	}
-	c.wg.Wait()
-
-	c.ui.LoadContent()
-}
-
-func (c *Controller) ExportDataset(dest string) {
-	if dest == c.datasetRoot {
-		c.ui.ShowErrorDialog(errInvalidDestination)
-		return
-	}
-	c.ui.ShowProgressDialog("hang on, this may take a while...")
-	binCount := c.ui.GetBinCount()
-	datasetRoot := filepath.Join(dest, "dataset_export")
-	if err := os.Mkdir(datasetRoot, 0755); err != nil {
-		if !os.IsExist(err) {
-			c.ui.ShowErrorDialog(err)
-			return
-		}
-	}
-
-	for i := range binCount {
-		imgPaths, err := c.db.GetImagePaths(i)
-		if err != nil {
-			log.Println("error getting image paths:", err)
-			c.ui.ShowErrorDialog(err)
-			return
-		}
-		err = c.copyImages(imgPaths, datasetRoot, i)
-		if err != nil {
-			c.ui.HideProgressDialog()
-			c.ui.ShowErrorDialog(err)
-			return
-		}
-	}
-
-	c.ui.HideProgressDialog()
-}
-
 func (c *Controller) copyImages(imgPaths []string, datasetRoot string, binID int) error {
 	total := float64(len(imgPaths))
 	var copiedCount int64
@@ -149,6 +78,7 @@ func (c *Controller) copyImages(imgPaths []string, datasetRoot string, binID int
 
 	return nil
 }
+
 
 func (c *Controller) dbinit(path string) error {
 	if c.db != nil {
@@ -244,6 +174,78 @@ func (c *Controller) getFromDBCache(path string) (database.CachedImage, bool) {
 
 	return img, false
 }
+
+func (c *Controller) LoadDataset(path string) {
+	c.ui.ShowProgressDialog("hang on, this may take a while...")
+	c.newCached = false
+	c.datasetRoot = path
+	if err := c.dbinit(path); err != nil {
+		c.ui.ShowErrorDialog(err)
+		return
+	}
+
+	d, err := data.NewDataset(path)
+	if err != nil {
+		c.ui.ShowErrorDialog(err)
+		return
+	}
+
+	imagePaths := d.Images
+
+	total := float64(len(imagePaths))
+	var processedCount int64
+
+	c.jobs = make(chan string, len(imagePaths))
+	for _, p := range imagePaths {
+		c.jobs <- p
+	}
+	close(c.jobs)
+
+	c.wg = &sync.WaitGroup{}
+	numWorkers := runtime.NumCPU()
+	c.wg.Add(numWorkers)
+
+	for range numWorkers {
+		go c.cacheImages(total, &processedCount)
+	}
+	c.wg.Wait()
+
+	c.ui.LoadContent()
+}
+
+func (c *Controller) ExportDataset(dest string) {
+	if dest == c.datasetRoot {
+		c.ui.ShowErrorDialog(errInvalidDestination)
+		return
+	}
+	c.ui.ShowProgressDialog("hang on, this may take a while...")
+	binCount := c.ui.GetBinCount()
+	datasetRoot := filepath.Join(dest, "dataset_export")
+	if err := os.Mkdir(datasetRoot, 0755); err != nil {
+		if !os.IsExist(err) {
+			c.ui.ShowErrorDialog(err)
+			return
+		}
+	}
+
+	for i := range binCount {
+		imgPaths, err := c.db.GetImagePaths(i)
+		if err != nil {
+			log.Println("error getting image paths:", err)
+			c.ui.ShowErrorDialog(err)
+			return
+		}
+		err = c.copyImages(imgPaths, datasetRoot, i)
+		if err != nil {
+			c.ui.HideProgressDialog()
+			c.ui.ShowErrorDialog(err)
+			return
+		}
+	}
+
+	c.ui.HideProgressDialog()
+}
+
 
 // Getthumbnail to be used by controller clients and retrieve the thumbnail from the in memory cache
 func (c *Controller) GetThumbnail(path string) image.Image {
