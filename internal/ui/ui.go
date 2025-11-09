@@ -2,7 +2,6 @@ package ui
 
 import (
 	"fmt"
-	"image"
 	"log"
 	"path/filepath"
 
@@ -143,10 +142,7 @@ func (p *PicsortUI) ReloadBin(id int) {
 		if _, ok := p.binGrids[id]; !ok {
 			return
 		}
-		p.binGrids[id].unselectAll()
 		p.binGrids[id].Reload()
-		p.setTabTitle(id)
-		p.tabs.Refresh()
 	})
 }
 
@@ -167,6 +163,12 @@ func (p *PicsortUI) GoToTab(id int) {
 	})
 }
 
+func (p *PicsortUI) RefreshTabCount(id int) {
+	fyne.Do(func() {
+		p.setTabTitle(id)
+	})
+}
+
 func (p *PicsortUI) setTabTitle(id int) {
 	tabTitle := fmt.Sprintf("Bin %d", id)
 	if id == 0 {
@@ -180,12 +182,14 @@ func (p *PicsortUI) setTabTitle(id int) {
 		}
 	}
 	p.tabs.Items[id].Text = tabTitle
+	p.tabs.Refresh()
 }
 
 func (p *PicsortUI) GetWindow() fyne.Window { return p.win }
 
-func (p *PicsortUI) UpdatePreview(i image.Image, path string) {
+func (p *PicsortUI) UpdatePreview(path string) {
 	fyne.Do(func() {
+		i := p.controller.GetPreview(path)
 		p.preview.Image = i
 		p.preview.Refresh()
 		p.previewCard.SetSubTitle(filepath.Base(path))
@@ -202,9 +206,10 @@ func (p *PicsortUI) initBins() {
 func (p *PicsortUI) NewBin() {
 	if len(p.binGrids) <= 9 {
 		binCount := len(p.binGrids)
-		binGrid := NewThumbnailGrid(binCount, p.win, p.controller)
+		binGrid := NewThumbnailGrid(binCount, p, p.controller)
 		p.binGrids[binCount] = binGrid
-		p.tabs.Append(container.NewTabItem("", p.binGrids[binCount]))
+		newTab := container.NewTabItem("", p.binGrids[binCount])
+		p.tabs.Append(newTab)
 		p.setTabTitle(binCount)
 	}
 }
@@ -274,19 +279,22 @@ func (p *PicsortUI) setGlobalKeyBinds() {
 		p.mainContent.SetOffset(newOffset)
 	})
 
-	p.win.Canvas().SetOnTypedKey(func(e *fyne.KeyEvent) {
-		switch e.Name {
-		case fyne.KeyF1:
-			p.toggleHelp()
-		}
-	})
+	p.win.Canvas().SetOnTypedKey(p.OnTypedKey)
+	p.win.Canvas().SetOnTypedRune(p.OnTypedRune)
+}
 
-	p.win.Canvas().SetOnTypedRune(func(r rune) {
-		switch r {
-		case 63:
-			p.toggleHelp()
-		}
-	})
+func (p *PicsortUI) OnTypedKey(e *fyne.KeyEvent) {
+	switch e.Name {
+	case fyne.KeyF1:
+		p.toggleHelp()
+	}
+}
+
+func (p *PicsortUI) OnTypedRune(r rune) {
+	switch r {
+	case 63:
+		p.toggleHelp()
+	}
 }
 
 func (p *PicsortUI) LoadContent() {
@@ -297,6 +305,7 @@ func (p *PicsortUI) LoadContent() {
 		p.addBinButton.ToolbarObject().Show()
 		p.rmBinButton.ToolbarObject().Show()
 		p.GoToTab(0)
+		//TODO: Hide the welcome screen and show a preview
 		p.mainStack.Objects[0].Hide()
 	})
 }

@@ -23,10 +23,8 @@ var (
 type CoreUI interface {
 	ShowProgressDialog(msg string)
 	SetProgress(progress float64, f string)
-	ReloadBin(id int)
 	ShowErrorDialog(err error)
 	HideProgressDialog()
-	UpdatePreview(i image.Image, path string)
 	GetBinCount() int
 	LoadContent()
 }
@@ -100,15 +98,20 @@ func (c *Controller) ExportDataset(dest string) {
 		if err != nil {
 			log.Println("error getting image paths:", err)
 			c.ui.ShowErrorDialog(err)
-			continue
+			return
 		}
-		c.copyImages(imgPaths, datasetRoot, i)
+		err = c.copyImages(imgPaths, datasetRoot, i)
+		if err != nil {
+			c.ui.HideProgressDialog()
+			c.ui.ShowErrorDialog(err)
+			return
+		}
 	}
 
 	c.ui.HideProgressDialog()
 }
 
-func (c *Controller) copyImages(imgPaths []string, datasetRoot string, binID int) {
+func (c *Controller) copyImages(imgPaths []string, datasetRoot string, binID int) error {
 	total := float64(len(imgPaths))
 	var copiedCount int64
 	var failedCopy []string
@@ -116,8 +119,7 @@ func (c *Controller) copyImages(imgPaths []string, datasetRoot string, binID int
 	destinationDir := filepath.Join(datasetRoot, fmt.Sprint(binID))
 	err := os.Mkdir(destinationDir, 0755)
 	if err != nil && !os.IsExist(err) {
-		log.Println("Failed to create destination directory:", err)
-		return
+		return fmt.Errorf("failed to create destination directory: %v", err)
 	}
 
 	for _, imgPath := range imgPaths {
@@ -142,8 +144,10 @@ func (c *Controller) copyImages(imgPaths []string, datasetRoot string, binID int
 	}
 
 	if len(failedCopy) > 0 {
-		c.ui.ShowErrorDialog(fmt.Errorf("failed to copy %d files, check logfile for more details", len(failedCopy)))
+		return fmt.Errorf("failed to copy %d files, check logfile for more details", len(failedCopy))
 	}
+
+	return nil
 }
 
 func (c *Controller) dbinit(path string) error {
@@ -259,22 +263,12 @@ func (c *Controller) GetPreview(path string) image.Image {
 	return nil
 }
 
-func (c *Controller) UpdatePreview(path string) {
-	c.ui.UpdatePreview(c.GetPreview(path), path)
-}
-
-func (c *Controller) MoveImages(paths []string, sourceID, destID int) {
+func (c *Controller) MoveImages(paths []string, sourceID, destID int) error {
 	if sourceID == destID || destID > c.ui.GetBinCount() {
-		return
+		return nil
 	}
 
-	err := c.db.UpdateImages(paths, sourceID, destID)
-	if err != nil {
-		c.ui.ShowErrorDialog(err)
-		return
-	}
-	c.ui.ReloadBin(sourceID)
-	c.ui.ReloadBin(destID)
+	return c.db.UpdateImages(paths, sourceID, destID)
 }
 
 func New(ui CoreUI) *Controller {

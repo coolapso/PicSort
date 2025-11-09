@@ -14,23 +14,31 @@ import (
 // The ThumbnailProvider needs to provide way to get thumbnails and its paths, as well as a way to update the preview.
 type ThumbnailProvider interface {
 	GetThumbnail(path string) image.Image
-	UpdatePreview(path string)
 	GetImagePaths(bindID int) []string
-	MoveImages(paths []string, sourceID, destID int)
+	MoveImages(paths []string, sourceID, destID int) error
+}
+
+type CoreUI interface {
+	ReloadBin(id int)
+	RefreshTabCount(id int)
+	ShowErrorDialog(err error)
+	UpdatePreview(path string)
+	OnTypedKey(e *fyne.KeyEvent)
+	OnTypedRune(r rune)
 }
 
 type ThumbnailGridWrap struct {
 	widget.GridWrap
-	w               fyne.Window
 	id              int
 	selectionAnchor widget.GridWrapItemID
 	selectedIDs     []widget.GridWrapItemID
 	previousKey     fyne.KeyName
 	previousKeyAt   time.Time
 	currentID       widget.GridWrapItemID
+	imagePaths      []string
 
 	dataProvider ThumbnailProvider
-	imagePaths   []string
+	ui           CoreUI
 }
 
 func (g *ThumbnailGridWrap) TypedKey(key *fyne.KeyEvent) {
@@ -55,9 +63,9 @@ func (g *ThumbnailGridWrap) TypedKey(key *fyne.KeyEvent) {
 	case fyne.KeyG:
 		if g.isDoublePress(key) {
 			if shiftPressed() {
-				g.ScrollToItem(g.Length() - 1)
+				g.Highlight(g.Length() - 1)
 			} else {
-				g.ScrollToItem(0)
+				g.Highlight(0)
 			}
 			return
 		}
@@ -69,14 +77,14 @@ func (g *ThumbnailGridWrap) TypedKey(key *fyne.KeyEvent) {
 		g.goToBottom()
 	case fyne.KeyM:
 		if g.isDoublePress(key) {
-			g.ScrollToItem(len(g.imagePaths) / 2)
+			g.Highlight(len(g.imagePaths) / 2)
 			return
 		}
 		g.goToMiddle()
 	case fyne.KeyHome:
-		g.ScrollToItem(0)
+		g.Highlight(0)
 	case fyne.KeyEnd:
-		g.ScrollToItem(g.Length() - 1)
+		g.Highlight(g.Length() - 1)
 	case fyne.KeyEscape:
 		g.unselectAll()
 	case fyne.Key1:
@@ -100,16 +108,12 @@ func (g *ThumbnailGridWrap) TypedKey(key *fyne.KeyEvent) {
 	case fyne.Key0:
 		g.MoveImages(0)
 	default:
-		if g.w.Canvas().OnTypedKey() != nil {
-			g.w.Canvas().OnTypedKey()(key)
-		}
+		g.ui.OnTypedKey(key)
 	}
 }
 
 func (g *ThumbnailGridWrap) TypedRune(r rune) {
-	if g.w.Canvas().OnTypedRune() != nil {
-		g.w.Canvas().OnTypedRune()(r)
-	}
+	g.ui.OnTypedRune(r)
 }
 
 func (g *ThumbnailGridWrap) isDoublePress(key *fyne.KeyEvent) bool {
@@ -142,8 +146,7 @@ func (g *ThumbnailGridWrap) onHighlighted(id widget.GridWrapItemID) {
 	if id < 0 || id >= len(g.imagePaths) {
 		return
 	}
-	path := g.imagePaths[id]
-	g.dataProvider.UpdatePreview(path)
+	g.ui.UpdatePreview(g.imagePaths[id])
 	g.currentID = id
 
 	if !shiftPressed() {
@@ -177,7 +180,13 @@ func (g *ThumbnailGridWrap) unselectAll() {
 
 func (g *ThumbnailGridWrap) Reload() {
 	g.imagePaths = g.dataProvider.GetImagePaths(g.id)
+	go g.ui.RefreshTabCount(g.id)
+	g.unselectAll()
 	g.Refresh()
+}
+
+func (g *ThumbnailGridWrap) GetImagePaths() []string {
+	return g.imagePaths
 }
 
 func (g *ThumbnailGridWrap) itemCount() int {
@@ -269,20 +278,20 @@ func (g *ThumbnailGridWrap) scrollPageDown() {
 
 func (g *ThumbnailGridWrap) goToTop() {
 	visibleItems := g.visibleItemIDs()
-	g.ScrollToItem(visibleItems[0])
+	g.Highlight(visibleItems[0])
 }
 
 func (g *ThumbnailGridWrap) goToBottom() {
 	visibleItems := g.visibleItemIDs()
-	g.ScrollToItem(visibleItems[len(visibleItems)-1])
+	g.Highlight(visibleItems[len(visibleItems)-1])
 }
 
 func (g *ThumbnailGridWrap) goToMiddle() {
 	visibleItems := g.visibleItemIDs()
 	if len(visibleItems)%2 == 0 {
-		g.ScrollToItem(visibleItems[len(visibleItems)/2])
+		g.Highlight(visibleItems[len(visibleItems)/2])
 	} else {
-		g.ScrollToItem(visibleItems[len(visibleItems)/2-1])
+		g.Highlight(visibleItems[len(visibleItems)/2-1])
 	}
 }
 
@@ -291,6 +300,7 @@ func (g *ThumbnailGridWrap) MoveImages(destID int) {
 		return
 	}
 
+	var nextHighlightID int
 	var toMove []string
 	if len(g.selectedIDs) == 0 {
 		imagePath := g.imagePaths[g.currentID]
@@ -298,38 +308,35 @@ func (g *ThumbnailGridWrap) MoveImages(destID int) {
 			return
 		}
 		toMove = []string{imagePath}
+		nextHighlightID = g.currentID
 	}
 
 	if len(g.selectedIDs) > 0 {
 		for _, id := range g.selectedIDs {
+			if id < 0 {
+				continue
+			}
 			toMove = append(toMove, g.imagePaths[id])
 		}
+
+		nextHighlightID = slices.Min(g.selectedIDs)
 	}
 
 	g.dataProvider.MoveImages(toMove, g.id, destID)
-
-	// need to force the preview update from here
-	// Doing this because on highlighted is not triggered when refreshing,
-	// and controller has no clue of what images each grid contains
-	// therefore have to force the preview to update to the next item,
-	// but got to make sure that is now out of bounds and
-	// will have at least one to show after the update
-	if g.currentID+1 > len(g.imagePaths)-1 {
-		return
-	}
-	g.dataProvider.UpdatePreview(g.imagePaths[g.currentID+1])
-	g.ScrollToItem(g.selectionAnchor)
+	go g.ui.ReloadBin(destID)
+	g.Reload()
+	g.Highlight(nextHighlightID)
 }
 
-func NewThumbnailGrid(id int, w fyne.Window, d ThumbnailProvider) *ThumbnailGridWrap {
+func NewThumbnailGrid(id int, ui CoreUI, d ThumbnailProvider) *ThumbnailGridWrap {
 	grid := &ThumbnailGridWrap{
-		w:               w,
+		ui:              ui,
 		dataProvider:    d,
 		selectionAnchor: -1,
 		selectedIDs:     []widget.GridWrapItemID{},
+		id:              id,
 	}
 
-	grid.id = id
 	grid.Length = grid.itemCount
 	grid.CreateItem = grid.createItem
 	grid.UpdateItem = grid.updateItem
