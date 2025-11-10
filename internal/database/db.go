@@ -187,11 +187,7 @@ func (db *DB) SetImages(images map[string]CachedImage) error {
 func (db *DB) GetImagePaths(binID int) ([]string, error) {
 	var rows *sql.Rows
 	var err error
-	if binID == -1 {
-		rows, err = db.conn.Query("SELECT path FROM thumbnails")
-	} else {
-		rows, err = db.conn.Query("SELECT image_path FROM image_bins WHERE bin_id = ?", binID)
-	}
+	rows, err = db.conn.Query("SELECT image_path FROM image_bins WHERE bin_id = ?", binID)
 	if err != nil {
 		return nil, err
 	}

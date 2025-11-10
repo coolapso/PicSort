@@ -26,6 +26,7 @@ type PicsortUI struct {
 	welcomeScreen  *fyne.Container
 	tabs           *container.AppTabs
 	binGrids       map[int]*ThumbnailGridWrap
+	excludedGrid   *ThumbnailGridWrap
 	progress       *widget.ProgressBar
 	progressValue  binding.Float
 	progressTitle  *widget.Label
@@ -39,6 +40,7 @@ type PicsortUI struct {
 	bottomBar      fyne.Widget
 	addBinButton   widget.ToolbarItem
 	rmBinButton    widget.ToolbarItem
+	excludedButton widget.ToolbarItem
 	helpButton     *widget.Button
 	helpDialog     dialog.Dialog
 	helpVisible    bool
@@ -82,6 +84,12 @@ func (p *PicsortUI) hideHelpDialog() {
 	})
 }
 
+func (p *PicsortUI) showBottomBarButtons() {
+	p.addBinButton.ToolbarObject().Show()
+	p.rmBinButton.ToolbarObject().Show()
+	p.excludedButton.ToolbarObject().Show()
+}
+
 func (p *PicsortUI) SetProgress(progress float64, f string) {
 	fyne.Do(func() {
 		p.progressFile.SetText(f)
@@ -97,6 +105,25 @@ func (p *PicsortUI) ShowErrorDialog(err error) {
 		})
 		d.Show()
 	})
+}
+
+func (p *PicsortUI) toggleExcluded() {
+	if p.excludedGrid == nil {
+		return
+	}
+	if p.excludedGrid.Visible() {
+		p.excludedGrid.Hide()
+		p.tabs.Show()
+		tabIndex := p.tabs.SelectedIndex()
+		if grid, ok := p.binGrids[tabIndex]; ok {
+			p.win.Canvas().Focus(grid)
+		}
+		return
+	}
+
+	p.tabs.Hide()
+	p.excludedGrid.Show()
+	p.win.Canvas().Focus(p.excludedGrid)
 }
 
 func (p *PicsortUI) openDataSetDialog() {
@@ -134,11 +161,17 @@ func (p *PicsortUI) ReloadAll() {
 		for _, bin := range p.binGrids {
 			p.ReloadBin(bin.id)
 		}
+		if p.excludedGrid != nil {
+			p.excludedGrid.Reload()
+		}
 	})
 }
 
 func (p *PicsortUI) ReloadBin(id int) {
 	fyne.Do(func() {
+		if id == -1 && p.excludedGrid != nil {
+			p.excludedGrid.Reload()
+		}
 		if _, ok := p.binGrids[id]; !ok {
 			return
 		}
@@ -170,6 +203,9 @@ func (p *PicsortUI) RefreshTabCount(id int) {
 }
 
 func (p *PicsortUI) setTabTitle(id int) {
+	if id < 0 {
+		return
+	}
 	tabTitle := fmt.Sprintf("Bin %d", id)
 	if id == 0 {
 		tabTitle = "To Sort"
@@ -200,7 +236,8 @@ func (p *PicsortUI) initBins() {
 	for i := 0; i <= 5; i++ {
 		p.NewBin()
 	}
-
+	p.excludedGrid = NewThumbnailGrid(-1, p, p.controller)
+	p.excludedGrid.Hide()
 }
 
 func (p *PicsortUI) NewBin() {
@@ -238,6 +275,11 @@ func (p *PicsortUI) setGlobalKeyBinds() {
 			p.GoToTab(i)
 		})
 	}
+
+	ctrlX := &desktop.CustomShortcut{KeyName: fyne.KeyX, Modifier: fyne.KeyModifierAlt}
+	p.win.Canvas().AddShortcut(ctrlX, func(s fyne.Shortcut) {
+		p.toggleExcluded()
+	})
 
 	ctrlO := &desktop.CustomShortcut{KeyName: fyne.KeyO, Modifier: fyne.KeyModifierControl}
 	p.win.Canvas().AddShortcut(ctrlO, func(s fyne.Shortcut) {
@@ -302,8 +344,7 @@ func (p *PicsortUI) LoadContent() {
 		p.ReloadAll()
 		p.HideProgressDialog()
 		p.mainContent.Show()
-		p.addBinButton.ToolbarObject().Show()
-		p.rmBinButton.ToolbarObject().Show()
+		p.showBottomBarButtons()
 		p.GoToTab(0)
 		//TODO: Hide the welcome screen and show a preview
 		p.mainStack.Objects[0].Hide()
@@ -352,7 +393,8 @@ func New(a fyne.App, w fyne.Window) {
 	}
 	p.welcomeScreen = newWelcomeScreen(v)
 
-	p.mainContent = container.NewHSplit(p.tabs, p.previewCard)
+	gridStack := container.NewStack(p.excludedGrid, p.tabs)
+	p.mainContent = container.NewHSplit(gridStack, p.previewCard)
 	p.mainContent.SetOffset(0.3)
 
 	p.mainStack = container.NewStack(p.welcomeScreen, p.mainContent)

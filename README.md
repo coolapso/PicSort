@@ -43,26 +43,15 @@ You can watch a quick demo of picsort [here](https://youtu.be/HdG0HuAClu0)
 
 ### How it works
 
-when you open a dataset, picsort will generate a cache with thumbnails and previews, this task is multi threaded and uses all available cores, once the cache is generated, the subsequent loads of your dataset should be significantly faster. All operations are then done using the cache, and the original images are never touched. Upen exporting picsort will copy the images from the original location to the chosen destionation and the images will be placed in a directory wit hthe correspoinding number.
+When you open a dataset for the first time, `picsort` generates a cache containing thumbnails and previews. This is a multi-threaded task that utilizes all available CPU cores to complete quickly. Once this cache is generated, subsequent loads of the dataset will be significantly faster.
+
+All operations within the application are performed on the cached data, ensuring your original images are never modified.
+
+When exporting, `picsort` copies the selected images from their original location to your chosen destination. The images are organized into directories named with a corresponding number, and any excluded images are ignored.
 
 ### Keyboard Shortcuts
 
 At any time, press `?` to view the help menu with all available keybindings.
-
-| Action                 | Shortcut                       |
-| ---------------------- | ------------------------------ |
-| Open Dataset           | `Ctrl+O`                       |
-| Export Sorted Images   | `Ctrl+E`                       |
-| Navigate Thumbnails    | `H`, `J`, `K`, `L` / Arrow Keys|
-| Switch Bin/Tab         | `Ctrl` + `0-9`                 |
-| Move to Bin            | `1-9`                          |
-| Move to Unsorted       | `0`                            |
-| Select/Deselect Image  | `Space`                        |
-| Multi-select Range     | `Shift` + Navigation Key       |
-| Add Bin                | `Ctrl+T`                       |
-| Remove Bin             | `Ctrl+W`                       |
-| Resize Panels          | `Ctrl+H` / `Ctrl+L`            |
-| Show Help Menu         | `?` or `F1`                    |
 
 Thank you for checking out Picsort. I hope you find it useful!
 

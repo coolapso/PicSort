@@ -42,9 +42,16 @@ func (p *PicsortUI) setBottomBar() {
 	p.rmBinButton = widget.NewToolbarAction(theme.ContentRemoveIcon(), func() {
 		p.RemoveBin()
 	})
+
+	p.excludedButton = widget.NewToolbarAction(theme.DeleteIcon(), func() {
+		p.toggleExcluded()
+	})
+
 	p.rmBinButton.ToolbarObject().Hide()
+	p.excludedButton.ToolbarObject().Hide()
 
 	p.bottomBar = widget.NewToolbar(
+		p.excludedButton,
 		p.addBinButton,
 		p.rmBinButton,
 		widget.NewToolbarSpacer(),

@@ -78,8 +78,6 @@ func (c *Controller) copyImages(imgPaths []string, datasetRoot string, binID int
 
 	return nil
 }
-
-
 func (c *Controller) dbinit(path string) error {
 	if c.db != nil {
 		c.db.Close()
@@ -218,6 +216,7 @@ func (c *Controller) ExportDataset(dest string) {
 		c.ui.ShowErrorDialog(errInvalidDestination)
 		return
 	}
+
 	c.ui.ShowProgressDialog("hang on, this may take a while...")
 	binCount := c.ui.GetBinCount()
 	datasetRoot := filepath.Join(dest, "dataset_export")
@@ -229,6 +228,9 @@ func (c *Controller) ExportDataset(dest string) {
 	}
 
 	for i := range binCount {
+		if i == -1 {
+			continue
+		}
 		imgPaths, err := c.db.GetImagePaths(i)
 		if err != nil {
 			log.Println("error getting image paths:", err)
@@ -246,8 +248,6 @@ func (c *Controller) ExportDataset(dest string) {
 	c.ui.HideProgressDialog()
 }
 
-
-// Getthumbnail to be used by controller clients and retrieve the thumbnail from the in memory cache
 func (c *Controller) GetThumbnail(path string) image.Image {
 	if img, ok := c.db.GetThumbnail(path); ok {
 		return img

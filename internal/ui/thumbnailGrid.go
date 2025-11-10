@@ -107,6 +107,8 @@ func (g *ThumbnailGridWrap) TypedKey(key *fyne.KeyEvent) {
 		g.MoveImages(9)
 	case fyne.Key0:
 		g.MoveImages(0)
+	case fyne.KeyX:
+		g.MoveImages(-1)
 	default:
 		g.ui.OnTypedKey(key)
 	}

@@ -123,13 +123,14 @@ func newHelpDialogContent() fyne.CanvasObject {
 	link.Alignment = fyne.TextAlignCenter
 
 	globalShortcuts := map[string]string{
-		"?, F1":    "Show this help dialog",
+		"?, F1":    "Toggle help dialog",
 		"Ctrl+O":   "Open dataset folder",
 		"Ctrl+E":   "Export dataset",
 		"Ctrl+T":   "Add a new bin",
 		"Ctrl+W":   "Remove the last bin",
 		"Ctrl+0-9": "Switch to the corresponding bin tab",
-		"Ctrl+H/L": "Adjust preview panel size",
+		"Ctrl+H/L": "just preview panel size",
+		"Alt+X":    "Toggle exluded images view",
 	}
 
 	movementShortcuts := map[string]string{
@@ -150,6 +151,7 @@ func newHelpDialogContent() fyne.CanvasObject {
 		"Shift + H,J,K,L / Arrow Keys": "Select multiple images",
 		"Escape":                       "Unselect all selected images",
 		"0 - 9":                        "Move selected image(s) to bin",
+		"x":                            "Exclude selected image(s)",
 	}
 
 	tabs := container.NewAppTabs(
