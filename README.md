@@ -21,6 +21,7 @@ It is important to clarify that Picsort is not a replacement for general-purpose
 *   **High Performance**: Picsort tries to be as fast as possible, even with thousands of images, however the tradeoff is that it will take a while to load the first time while picsort generates a cache with thumbnails and previews for a fast and smooth experience.
 *   **Non-Destructive**: Your original images are sacred. Picsort never modifies them. It reads them to create a cache and copies them to your chosen destination upon export.
 *   **Simple UI**: The UI aims to be as simple ans self explanatory as possible without much going on!
+*   **Machine learning ready**: Picsort exports your dataset split into three categories: training, validation, and test.
 
 ### Why I created Picsort?
 
@@ -48,6 +49,14 @@ When you open a dataset for the first time, `picsort` generates a cache containi
 All operations within the application are performed on the cached data, ensuring your original images are never modified.
 
 When exporting, `picsort` copies the selected images from their original location to your chosen destination. The images are organized into directories named with a corresponding number, and any excluded images are ignored.
+
+If you are preparing a dataset for training a computer vision model, the `Balance & Export` feature helps you create properly structured datasets. It splits your sorted images into three standard sets:
+
+*   **Training**: 60%
+*   **Validation**: 20%
+*   **Test**: 20%
+
+This 60/20/20 split is applied to each of your sorting categories. The images within each category are randomly assigned to one of the three sets, which helps reduce statistical bias when training your model.
 
 ### Keyboard Shortcuts
 
