@@ -150,7 +150,7 @@ func (p *PicsortUI) exportDatasetDialog() {
 		if uri == nil {
 			return
 		}
-		go p.controller.ExportDataset(uri.Path(),false)
+		go p.controller.ExportDataset(uri.Path(), false)
 	}, p.win)
 	folderDialog.Resize(fyne.NewSize(800, 600))
 	folderDialog.Show()
