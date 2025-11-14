@@ -287,3 +287,25 @@ func (db *DB) RemoveImages(paths []string) error {
 
 	return tx.Commit()
 }
+
+// Returns the number of images in the smallest bin, excluding the "To Sort" (0) and "excluded" (-1) bins.
+func (db *DB) GetLowestImageCount() (int, error) {
+	var count int
+	query := `
+		SELECT COUNT(image_path)
+		FROM image_bins
+		WHERE bin_id > 0
+		GROUP BY bin_id
+		ORDER BY COUNT(image_path) ASC
+		LIMIT 1;
+	`
+	err := db.conn.QueryRow(query).Scan(&count)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return 0, nil
+		}
+		return -1, err
+	}
+
+	return count, nil
+}

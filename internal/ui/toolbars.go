@@ -21,6 +21,7 @@ func newURLToolbarAction(a fyne.App, icon fyne.Resource, urlStr string) widget.T
 func (p *PicsortUI) setTopBar() {
 	openDataSetButton := widget.NewButton("Open dataset", p.openDataSetDialog)
 	exportButton := widget.NewButton("Export", p.exportDatasetDialog)
+	exportBalanced := widget.NewButton("Balance & Export", p.exportBalancedDatasetDialog)
 	c := newHelpDialogContent()
 	p.helpDialog = dialog.NewCustom("Help", "Close", c, p.win)
 	p.helpDialog.Resize(fyne.NewSize(450, 500))
@@ -29,7 +30,7 @@ func (p *PicsortUI) setTopBar() {
 	})
 
 	p.topBar = container.NewBorder(nil, nil, nil, p.helpButton,
-		container.NewHBox(openDataSetButton, exportButton),
+		container.NewHBox(openDataSetButton, exportButton, exportBalanced),
 	)
 }
 

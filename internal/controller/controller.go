@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"image"
 	"log"
+	"math/rand/v2"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -211,20 +212,105 @@ func (c *Controller) LoadDataset(path string) {
 	c.ui.LoadContent()
 }
 
-func (c *Controller) ExportDataset(dest string) {
+func (c *Controller) ExportDataset(dest string, balanced bool) {
 	if dest == c.datasetRoot {
 		c.ui.ShowErrorDialog(errInvalidDestination)
 		return
 	}
 
 	c.ui.ShowProgressDialog("hang on, this may take a while...")
-	binCount := c.ui.GetBinCount()
+	defer c.ui.HideProgressDialog()
+
 	datasetRoot := filepath.Join(dest, "dataset_export")
-	if err := os.Mkdir(datasetRoot, 0755); err != nil {
-		if !os.IsExist(err) {
+	if balanced {
+		datasetRoot = filepath.Join(dest, "balanced_export")
+	}
+
+	if err := os.MkdirAll(datasetRoot, 0755); err != nil {
+		c.ui.ShowErrorDialog(err)
+		return
+	}
+
+	binCount := c.ui.GetBinCount()
+
+	if balanced {
+		imgCount, err := c.db.GetLowestImageCount()
+		if err != nil {
 			c.ui.ShowErrorDialog(err)
 			return
 		}
+		if imgCount == 0 {
+			message := errors.New("no images found in bins to create a balanced export")
+			c.ui.ShowErrorDialog(message)
+			return
+		}
+
+		trainCount := int(float64(imgCount) * 0.6)
+		validationCount := int(float64(imgCount) * 0.2)
+		testCount := int(float64(imgCount) * 0.2)
+
+		splitCounts := map[string]int{
+			"training":   trainCount,
+			"validation": validationCount,
+			"test":       testCount,
+		}
+
+		for splitName := range splitCounts {
+			if err := os.MkdirAll(filepath.Join(datasetRoot, splitName), 0755); err != nil {
+				c.ui.ShowErrorDialog(err)
+				return
+			}
+		}
+
+		for i := range binCount {
+			if i <= 0 {
+				continue
+			}
+
+			imgPaths, err := c.db.GetImagePaths(i)
+			if err != nil {
+				message := fmt.Errorf("error getting image paths for bin %d: %v", i, err)
+				c.ui.ShowErrorDialog(message)
+				return
+			}
+
+			if len(imgPaths) < imgCount {
+				message := fmt.Errorf("not enough images for balanced export on bin %d", i)
+				c.ui.ShowErrorDialog(message)
+				continue
+			}
+
+			rand.Shuffle(len(imgPaths), func(j, k int) {
+				imgPaths[j], imgPaths[k] = imgPaths[k], imgPaths[j]
+			})
+
+			for splitName := range splitCounts {
+				if err := os.MkdirAll(filepath.Join(datasetRoot, splitName, fmt.Sprint(i)), 0755); err != nil {
+					c.ui.ShowErrorDialog(err)
+					return
+				}
+			}
+
+			// Select and copy images
+			start := 0
+			if err := c.copyImages(imgPaths[start:start+trainCount], filepath.Join(datasetRoot, "training"), i); err != nil {
+				c.ui.ShowErrorDialog(err)
+				return
+			}
+			start += trainCount
+
+			if err := c.copyImages(imgPaths[start:start+validationCount], filepath.Join(datasetRoot, "validation"), i); err != nil {
+				c.ui.ShowErrorDialog(err)
+				return
+			}
+			start += validationCount
+
+			if err := c.copyImages(imgPaths[start:start+testCount], filepath.Join(datasetRoot, "test"), i); err != nil {
+				c.ui.ShowErrorDialog(err)
+				return
+			}
+		}
+		return
 	}
 
 	for i := range binCount {
@@ -239,13 +325,10 @@ func (c *Controller) ExportDataset(dest string) {
 		}
 		err = c.copyImages(imgPaths, datasetRoot, i)
 		if err != nil {
-			c.ui.HideProgressDialog()
 			c.ui.ShowErrorDialog(err)
 			return
 		}
 	}
-
-	c.ui.HideProgressDialog()
 }
 
 func (c *Controller) GetThumbnail(path string) image.Image {

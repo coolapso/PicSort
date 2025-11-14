@@ -150,7 +150,22 @@ func (p *PicsortUI) exportDatasetDialog() {
 		if uri == nil {
 			return
 		}
-		go p.controller.ExportDataset(uri.Path())
+		go p.controller.ExportDataset(uri.Path(),false)
+	}, p.win)
+	folderDialog.Resize(fyne.NewSize(800, 600))
+	folderDialog.Show()
+}
+
+func (p *PicsortUI) exportBalancedDatasetDialog() {
+	folderDialog := dialog.NewFolderOpen(func(uri fyne.ListableURI, err error) {
+		if err != nil {
+			log.Println("Error opening folder dialog:", err)
+			return
+		}
+		if uri == nil {
+			return
+		}
+		go p.controller.ExportDataset(uri.Path(), true)
 	}, p.win)
 	folderDialog.Resize(fyne.NewSize(800, 600))
 	folderDialog.Show()
